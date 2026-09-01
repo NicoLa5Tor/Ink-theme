@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import Header from '../components/layout/Header';
 import Footer from '../components/layout/Footer';
+import CookieConsent from '../components/layout/CookieConsent/CookieConsent';
 
 /**
  * Monta las islas de interactividad compartidas por todas las plantillas
@@ -36,4 +37,10 @@ export function mountSiteChrome() {
 
   const footerFloatRoot = document.getElementById('site-footer-float-root');
   if (footerFloatRoot) createRoot(footerFloatRoot).render(<Footer />);
+
+  const consentRoot = document.getElementById('cookie-consent-root');
+  if (consentRoot) {
+    const { cookiesUrl } = consentRoot.dataset;
+    createRoot(consentRoot).render(<CookieConsent cookiesUrl={cookiesUrl} />);
+  }
 }

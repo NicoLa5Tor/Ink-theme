@@ -200,19 +200,7 @@ $ink_home_data = array(
 		'plansUrl' => $ink_plans_data['plansUrl'],
 		'plans'    => $ink_plans_data['plans'],
 	),
-	'contact'   => array(
-		'title'        => '¿Listo para crecer?',
-		'subtitle'     => 'Cuéntanos sobre tu negocio y te contactamos en menos de 24 horas.',
-		'whatsappHref' => 'https://api.whatsapp.com/send?' . http_build_query(
-			array(
-				'phone'        => '573164637827',
-				'text'         => 'Hola, quiero más información sobre sus servicios',
-				'utm_source'   => 'web',
-				'utm_medium'   => 'cta',
-				'utm_campaign' => 'contacto',
-			)
-		),
-	),
+	'contact'   => ink_get_contact_data(),
 );
 
 get_header();

@@ -26,8 +26,12 @@ export function usePlansIntro(rootRef) {
     const eyebrow = root.querySelector('.ink-eyebrow');
     const subtitle = root.querySelector('.ink-plans-page__subtitle');
     const hero = root.querySelector('.ink-plans-page__hero');
-    const whyItems = gsap.utils.toArray(root.querySelectorAll('.ink-plans-page__why-item'));
-    const cards = gsap.utils.toArray(root.querySelectorAll('.ink-price-card'));
+    const whyItems = gsap.utils.toArray(
+      root.querySelectorAll('.ink-plans-page__why-item, .ink-legal-nav__item'),
+    );
+    const cards = gsap.utils.toArray(
+      root.querySelectorAll('.ink-price-card, .ink-legal-section'),
+    );
     const guarantee = root.querySelector('.ink-plans-page__guarantee');
 
     // Divide el título en líneas reales (según cómo caiga el wrap) y envuelve

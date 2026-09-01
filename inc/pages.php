@@ -18,6 +18,18 @@ function ink_required_pages() {
 			'title'    => 'Gracias',
 			'template' => 'templates/page-gracias.php',
 		),
+		'politica-de-privacidad'  => array(
+			'title'    => 'Política de privacidad',
+			'template' => 'templates/page-legal.php',
+		),
+		'politica-de-cookies'     => array(
+			'title'    => 'Política de cookies',
+			'template' => 'templates/page-legal.php',
+		),
+		'terminos-y-condiciones'  => array(
+			'title'    => 'Términos y condiciones',
+			'template' => 'templates/page-legal.php',
+		),
 	);
 }
 

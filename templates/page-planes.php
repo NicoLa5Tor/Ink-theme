@@ -11,19 +11,7 @@ $ink_plans_data = ink_get_plans_data();
 
 $ink_home_data = array(
 	'plansPage' => $ink_plans_data,
-	'contact'   => array(
-		'title'        => '¿Listo para empezar?',
-		'subtitle'     => 'Cuéntanos qué plan te interesa y te contactamos en menos de 24 horas.',
-		'whatsappHref' => 'https://api.whatsapp.com/send?' . http_build_query(
-			array(
-				'phone'        => '573164637827',
-				'text'         => 'Hola, quiero más información sobre sus planes',
-				'utm_source'   => 'web',
-				'utm_medium'   => 'cta',
-				'utm_campaign' => 'planes',
-			)
-		),
-	),
+	'contact'   => ink_get_contact_data(),
 );
 
 get_header();

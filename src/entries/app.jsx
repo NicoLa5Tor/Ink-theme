@@ -8,6 +8,7 @@ import Results from '../components/sections/Results';
 import Portfolio from '../components/sections/Portfolio';
 import PlansTeaser from '../components/sections/Plans/PlansTeaser';
 import PlansPage from '../components/sections/Plans/PlansPage';
+import LegalPage from '../components/sections/Legal/LegalPage';
 import Contact from '../components/sections/Contact';
 import ShareButtons from '../components/sections/Share/ShareButtons';
 import {
@@ -64,6 +65,7 @@ function mountPage() {
   mount('portfolio-root', Portfolio, data.portfolio ?? {});
   mount('plans-root', PlansTeaser, data.plans ?? {});
   mount('plans-page-root', PlansPage, data.plansPage ?? {});
+  mount('legal-page-root', LegalPage, data.legalPage ?? {});
   mount('contact-root', Contact, data.contact ?? {});
 
   // Botones de compartir (single de blog)

@@ -45,9 +45,14 @@ $whatsapp_href = 'https://api.whatsapp.com/send?' . http_build_query(
 			<div>
 				<p class="font-heading font-semibold text-white">Legal</p>
 				<ul class="mt-3 space-y-2 text-sm">
-					<li><a href="/politica-de-privacidad/">Política de privacidad</a></li>
-					<li><a href="/politica-de-cookies/">Política de cookies</a></li>
-					<li><a href="/terminos-y-condiciones/">Términos y condiciones</a></li>
+					<li><a href="<?php echo esc_url( home_url( '/politica-de-privacidad/' ) ); ?>">Política de privacidad</a></li>
+					<li><a href="<?php echo esc_url( home_url( '/politica-de-cookies/' ) ); ?>">Política de cookies</a></li>
+					<li><a href="<?php echo esc_url( home_url( '/terminos-y-condiciones/' ) ); ?>">Términos y condiciones</a></li>
+					<li>
+						<button type="button" class="ink-manage-cookies" onclick="window.inkOpenCookieSettings?.()">
+							Gestionar cookies
+						</button>
+					</li>
 				</ul>
 			</div>
 		</div>
@@ -58,6 +63,11 @@ $whatsapp_href = 'https://api.whatsapp.com/send?' . http_build_query(
 	</footer>
 
 	<div id="site-footer-float-root"></div>
+
+	<div
+		id="cookie-consent-root"
+		data-cookies-url="<?php echo esc_url( home_url( '/politica-de-cookies/' ) ); ?>"
+	></div>
 
 	<?php wp_footer(); ?>
 </body>
