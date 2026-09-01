@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" width="900" height="1200" fill="none" role="img" aria-label="Proyecto de educación">
+  <defs>
+    <linearGradient id="ebg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1417"/><stop offset="1" stop-color="#070808"/>
+    </linearGradient>
+    <radialGradient id="eglow" cx="0.5" cy="0.2" r="0.6">
+      <stop offset="0" stop-color="#06b6d4" stop-opacity="0.7"/><stop offset="1" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="egrid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" stroke="#ffffff" stroke-opacity="0.04"/>
+    </pattern>
+  </defs>
+  <rect width="900" height="1200" fill="url(#ebg)"/>
+  <rect width="900" height="1200" fill="url(#egrid)"/>
+  <rect width="900" height="1200" fill="url(#eglow)"/>
+  <!-- birrete motif -->
+  <g stroke="#22d3ee" stroke-width="11" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M180 560 l270 -110 l270 110 l-270 110 z"/>
+    <path d="M520 604 v150 a70 40 0 0 1 -140 0 v-150"/>
+    <path d="M720 604 v170"/>
+  </g>
+  <text x="80" y="980" font-family="Montserrat, Arial, sans-serif" font-size="44" font-weight="800" fill="#22d3ee" letter-spacing="4">EDUCACIÓN</text>
+  <text x="80" y="1050" font-family="Inter, Arial, sans-serif" font-size="40" font-weight="700" fill="#ffffff">SEO técnico</text>
+  <text x="80" y="1100" font-family="Inter, Arial, sans-serif" font-size="40" font-weight="700" fill="#ffffff">y contenido</text>
+  <text x="80" y="130" font-family="Inter, Arial, sans-serif" font-size="26" fill="#525252">Ink Digital · placeholder</text>
+</svg>

@@ -1,0 +1,46 @@
+name: Deploy Ink Theme a Hostinger
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Build de producción (Vite)
+        run: npm run build
+
+      - name: Deploy por FTP a Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@4.3.4
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASS }}
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
+          protocol: ftps
+          # Solo sube lo que WordPress necesita para servir el tema:
+          # archivos PHP del tema + /dist/ (build de Vite).
+          # Se excluye todo lo que no debe llegar a producción.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/src/**
+            **/.github/**
+            **/*.md
+            **/package*.json
+            **/vite.config.js

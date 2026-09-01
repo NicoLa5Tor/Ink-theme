@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1200" width="900" height="1200" fill="none" role="img" aria-label="Proyecto inmobiliario">
+  <defs>
+    <linearGradient id="ibg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d1417"/><stop offset="1" stop-color="#070808"/>
+    </linearGradient>
+    <radialGradient id="iglow" cx="0.6" cy="0.3" r="0.6">
+      <stop offset="0" stop-color="#06b6d4" stop-opacity="0.7"/><stop offset="1" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="igrid" width="48" height="48" patternUnits="userSpaceOnUse">
+      <path d="M48 0H0V48" stroke="#ffffff" stroke-opacity="0.04"/>
+    </pattern>
+  </defs>
+  <rect width="900" height="1200" fill="url(#ibg)"/>
+  <rect width="900" height="1200" fill="url(#igrid)"/>
+  <rect width="900" height="1200" fill="url(#iglow)"/>
+  <!-- edificios motif -->
+  <g stroke="#22d3ee" stroke-width="10" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M300 760 v-220 h130 v220 M360 590 h10 M360 650 h10 M360 710 h10"/>
+    <path d="M470 760 v-320 l90 -60 l90 60 v320 M540 560 h20 M540 630 h20 M540 700 h20"/>
+  </g>
+  <text x="80" y="980" font-family="Montserrat, Arial, sans-serif" font-size="44" font-weight="800" fill="#22d3ee" letter-spacing="4">INMOBILIARIA</text>
+  <text x="80" y="1050" font-family="Inter, Arial, sans-serif" font-size="40" font-weight="700" fill="#ffffff">Generación de leads</text>
+  <text x="80" y="1100" font-family="Inter, Arial, sans-serif" font-size="40" font-weight="700" fill="#ffffff">de propiedades</text>
+  <text x="80" y="130" font-family="Inter, Arial, sans-serif" font-size="26" fill="#525252">Ink Digital · placeholder</text>
+</svg>
