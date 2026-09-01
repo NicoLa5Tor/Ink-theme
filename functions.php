@@ -19,6 +19,7 @@ require get_template_directory() . '/inc/plans-data.php';
 require get_template_directory() . '/inc/legal-data.php';
 require get_template_directory() . '/inc/whatsapp.php';
 require get_template_directory() . '/inc/contact-data.php';
+require get_template_directory() . '/inc/blog-data.php';
 require get_template_directory() . '/inc/pages.php';
 
 add_action(

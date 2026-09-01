@@ -20,7 +20,7 @@ export default function ShareButtons({ url, title }) {
           href={link.href}
           target="_blank"
           rel="noopener noreferrer"
-          className="rounded-lg border border-[var(--color-blue)] px-4 py-2 text-sm font-semibold text-[var(--color-blue)] hover:bg-[var(--color-blue-light)]"
+          className="rounded-full border border-[#a5f3fc] bg-[#ecfeff] px-4 py-2 text-sm font-semibold text-[#0e7490] hover:bg-[#cffafe]"
         >
           Compartir en {link.label}
         </a>

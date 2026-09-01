@@ -30,7 +30,7 @@ export function usePlansIntro(rootRef) {
       root.querySelectorAll('.ink-plans-page__why-item, .ink-legal-nav__item'),
     );
     const cards = gsap.utils.toArray(
-      root.querySelectorAll('.ink-price-card, .ink-legal-section'),
+      root.querySelectorAll('.ink-price-card, .ink-legal-section, .ink-blog-card, .ink-blog-article'),
     );
     const guarantee = root.querySelector('.ink-plans-page__guarantee');
 

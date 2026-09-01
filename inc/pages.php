@@ -14,6 +14,10 @@ function ink_required_pages() {
 			'title'    => 'Planes',
 			'template' => 'templates/page-planes.php',
 		),
+		'blog' => array(
+			'title'    => 'Blog',
+			'template' => 'templates/page-blog.php',
+		),
 		'gracias' => array(
 			'title'    => 'Gracias',
 			'template' => 'templates/page-gracias.php',
@@ -71,6 +75,46 @@ function ink_ensure_theme_pages() {
 			if ( $current !== $config['template'] ) {
 				update_post_meta( $page->ID, '_wp_page_template', $config['template'] );
 			}
+		}
+	}
+
+	$blog     = get_page_by_path( 'blog', OBJECT, 'page' );
+	$front_id = (int) get_option( 'page_on_front' );
+
+	if ( $blog && ( ! $front_id || $front_id === (int) $blog->ID ) ) {
+		$front = get_page_by_path( 'inicio', OBJECT, 'page' );
+		if ( ! $front ) {
+			$front_new = wp_insert_post(
+				array(
+					'post_title'   => 'Inicio',
+					'post_name'    => 'inicio',
+					'post_status'  => 'publish',
+					'post_type'    => 'page',
+					'post_content' => '',
+				),
+				true
+			);
+			if ( ! is_wp_error( $front_new ) ) {
+				$front_id = (int) $front_new;
+				$created  = true;
+			}
+		} else {
+			$front_id = (int) $front->ID;
+		}
+	}
+
+	if ( $blog && $front_id && $front_id !== (int) $blog->ID ) {
+		if ( 'page' !== get_option( 'show_on_front' ) ) {
+			update_option( 'show_on_front', 'page' );
+			$created = true;
+		}
+		if ( (int) get_option( 'page_on_front' ) !== $front_id ) {
+			update_option( 'page_on_front', $front_id );
+			$created = true;
+		}
+		if ( (int) get_option( 'page_for_posts' ) !== (int) $blog->ID ) {
+			update_option( 'page_for_posts', (int) $blog->ID );
+			$created = true;
 		}
 	}
 

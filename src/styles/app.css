@@ -1295,10 +1295,199 @@
     margin-top: 0.65rem;
   }
 
+  .ink-blog-single__date {
+    margin-top: 1.15rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #0891b2;
+  }
+
+  .ink-blog-grid {
+    display: grid;
+    gap: 1.15rem;
+    margin-top: 2.25rem;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 17rem), 1fr));
+  }
+
+  .ink-blog-card {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0;
+    text-decoration: none;
+    color: inherit;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+  }
+
+  .ink-blog-card:hover {
+    border-color: #a5f3fc;
+    box-shadow: 0 12px 28px hsl(187 85% 40% / 0.1);
+    transform: translateY(-3px);
+  }
+
+  .ink-blog-card__image {
+    display: block;
+    width: 100%;
+    height: 11.5rem;
+    object-fit: cover;
+    background: #f0fdff;
+  }
+
+  .ink-blog-card__image--empty {
+    background:
+      linear-gradient(135deg, #ecfeff 0%, #f8fafc 60%);
+  }
+
+  .ink-blog-card__body {
+    padding: 1.15rem 1.25rem 1.3rem;
+  }
+
+  .ink-blog-card__meta {
+    margin: 0 0 0.45rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #0891b2;
+  }
+
+  .ink-blog-card__body h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    line-height: 1.3;
+    color: #0a0a0a;
+  }
+
+  .ink-blog-card__body p {
+    margin-top: 0.45rem;
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #525252;
+  }
+
+  .ink-blog-empty {
+    grid-column: 1 / -1;
+    padding: 2rem 0 3rem;
+    color: #525252;
+  }
+
+  .ink-blog-pagination {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin: 2rem 0 1rem;
+  }
+
+  .ink-blog-pagination a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 999px;
+    border: 1px solid #e5e5e5;
+    color: #171717;
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .ink-blog-pagination a.is-current,
+  .ink-blog-pagination a:hover {
+    border-color: var(--color-blue);
+    background: #ecfeff;
+    color: #0e7490;
+  }
+
+  .ink-blog-article {
+    max-width: 46rem;
+    padding-bottom: 1rem;
+  }
+
+  .ink-blog-article__hero {
+    display: block;
+    width: 100%;
+    max-height: 22rem;
+    object-fit: cover;
+    border-radius: 1rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .ink-blog-article__content {
+    color: #404040;
+    font-size: 1.05rem;
+    line-height: 1.75;
+  }
+
+  .ink-blog-article__content h2,
+  .ink-blog-article__content h3 {
+    margin-top: 1.75rem;
+    color: #0a0a0a;
+    font-weight: 700;
+  }
+
+  .ink-blog-article__content p,
+  .ink-blog-article__content ul,
+  .ink-blog-article__content ol {
+    margin-top: 1rem;
+  }
+
+  .ink-blog-article__content a {
+    color: #0e7490;
+  }
+
+  .ink-blog-article__content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+  }
+
+  .ink-blog-article__share {
+    margin-top: 2.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #e5e5e5;
+  }
+
+  .ink-blog-article__share > p {
+    margin: 0 0 0.75rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #171717;
+  }
+
+  .ink-blog-related {
+    margin-top: 2.5rem;
+    padding-top: 2rem;
+    border-top: 1px solid #e5e5e5;
+  }
+
+  .ink-blog-related__title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #0a0a0a;
+  }
+
+  .ink-blog-related .ink-blog-grid {
+    margin-top: 1.25rem;
+  }
+
+  .ink-blog-back {
+    margin: 2rem 0 1rem;
+  }
+
+  .ink-blog-back a {
+    font-weight: 600;
+    color: #0e7490;
+    text-decoration: none;
+  }
+
   .ink-light-rest .ink-plans-page__title,
   .ink-light-rest .ink-plans-page__perks-title,
   .ink-light-rest .ink-plans-page__why-item h2,
-  .ink-light-rest .ink-legal-section h2 {
+  .ink-light-rest .ink-legal-section h2,
+  .ink-light-rest .ink-blog-card__body h2,
+  .ink-light-rest .ink-blog-related__title {
     background-image: none;
     -webkit-background-clip: unset;
     background-clip: unset;
