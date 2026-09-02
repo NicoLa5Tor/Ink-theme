@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -16,7 +16,10 @@ gsap.registerPlugin(ScrollTrigger);
  * @param {import('react').RefObject<HTMLElement>} rootRef  contenedor .ink-plans-page
  */
 export function usePlansIntro(rootRef) {
-  useEffect(() => {
+  // useLayoutEffect (no useEffect): los gsap.set que ocultan título/eyebrow/
+  // cards (autoAlpha:0) deben aplicarse ANTES de pintar; con useEffect el
+  // contenido se veía un frame antes de esconderse para revelarse -> flash.
+  useLayoutEffect(() => {
     const root = rootRef.current;
     if (!root) return undefined;
 

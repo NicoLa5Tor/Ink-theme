@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
@@ -14,7 +14,11 @@ gsap.registerPlugin(ScrollTrigger);
 export function useReveal(ref, options = {}) {
   const { delay = 0, duration = 0.8, y = 40, stagger = 0, start = 'top 85%' } = options;
 
-  useEffect(() => {
+  // useLayoutEffect (no useEffect): el gsap.set inicial que oculta el contenido
+  // (opacity:0) debe aplicarse ANTES de que el navegador pinte. Con useEffect
+  // corría después del paint, así que el texto se veía un frame visible y luego
+  // "saltaba" a oculto para revelarse -> flash al cargar.
+  useLayoutEffect(() => {
     const el = ref.current;
     if (!el) return undefined;
 
