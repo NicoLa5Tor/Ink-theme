@@ -4,7 +4,6 @@ import '../styles/app.css';
 import { mountSiteChrome } from './mountChrome';
 import {
   sameDocumentLocation,
-  scrollAfterNavigation,
   scrollToHash,
   waitForPageReady,
 } from '../navigation/inkRouter';
@@ -222,12 +221,10 @@ async function navigate(url, { push = true } = {}) {
   pushPageview(targetUrl.pathname);
 
   // Reset del scroll a tope ANTES de revelar la vista nueva y de montar los
-  // pins. Como el <main> se revela oculto->visible, y el scroll a 0 se hacía
-  // después (async, en scrollAfterNavigation), la página nueva alcanzaba a
-  // verse en la posición vieja (p. ej. abajo, si venías scrolleado en Inicio) y
-  // luego "saltaba" arriba. Al hacerlo aquí, síncrono, la vista nueva ya nace
-  // arriba y ScrollTrigger calcula los pins desde y=0. Si hay ancla (#hash), no
-  // se toca: scrollAfterNavigation la posiciona tras montar.
+  // pins. La vista nueva nace arriba y ScrollTrigger calcula los pins desde y=0,
+  // evitando que la página se revele en la posición vieja (p. ej. abajo, si
+  // venías scrolleado) y luego "salte" arriba. Si hay ancla (#hash), no se toca:
+  // se posiciona más abajo, ya con las secciones montadas.
   if (!targetUrl.hash) {
     window.scrollTo(0, 0);
   }
@@ -242,13 +239,26 @@ async function navigate(url, { push = true } = {}) {
   // en useLayoutEffect, antes de pintar). El reveal se dispara pase lo que pase
   // —éxito o error de montaje— y hay un respaldo por timeout FUERA del then para
   // que el <main> nunca quede oculto (incluye pestaña en segundo plano).
-  mountPage().then(
+  const mounted = mountPage();
+  mounted.then(
     () => requestAnimationFrame(() => requestAnimationFrame(revealMain)),
     revealMain,
   );
   setTimeout(revealMain, 250);
 
-  await scrollAfterNavigation(url, { push: false, instant: !targetUrl.hash });
+  // Scroll al ancla (#contacto, etc.) SOLO después de que las secciones montaron
+  // (import() asíncrono) y ScrollTrigger recalculó. Si se hacía antes, los pins
+  // (Hero/Servicios/Portfolio) aún no existían, la página era corta y el
+  // offsetTop del ancla quedaba pequeño -> el scroll terminaba "a mitad de
+  // servicios". Sin ancla, ya reseteamos a y=0 arriba, no hay nada que hacer.
+  if (targetUrl.hash) {
+    const runHashScroll = () =>
+      requestAnimationFrame(() => {
+        ScrollTrigger.refresh();
+        scrollToHash(targetUrl.hash, { instant: false });
+      });
+    mounted.then(runHashScroll, runHashScroll);
+  }
 }
 
 function handleSamePageLink(url, { push = true } = {}) {
