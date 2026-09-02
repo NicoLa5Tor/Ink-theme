@@ -1026,12 +1026,18 @@
   .ink-plans-page__title {
     margin-top: 1.25rem;
     max-width: 16ch;
-    font-size: clamp(2.75rem, 8vw, 6.5rem);
+    /* min bajado a 1.9rem: 2.75rem (44px) desbordaba en celulares (títulos de
+       blog largos + uppercase, sin quiebre de palabra). Ahora escala hasta abajo
+       y las palabras largas quiebran en vez de salirse. */
+    font-size: clamp(1.9rem, 8.5vw, 6.5rem);
     font-weight: 800;
-    line-height: 1;
+    line-height: 1.05;
     letter-spacing: -0.03em;
     text-transform: uppercase;
     color: #0a0a0a;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    text-wrap: balance;
   }
 
   .ink-plans-page__subtitle {
