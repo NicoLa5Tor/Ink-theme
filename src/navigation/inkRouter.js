@@ -104,6 +104,8 @@ export function landOnAnchorSettled(hash, { offset = NAV_SCROLL_OFFSET, timeout 
 
       const top = Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - offset));
       window.scrollTo(0, top);
+      // Sincroniza el progreso de los scrubs (túnel/hero) con el scroll real.
+      ScrollTrigger.update();
 
       if (lastTop !== null && Math.abs(top - lastTop) <= 2) stable += 1;
       else stable = 0;

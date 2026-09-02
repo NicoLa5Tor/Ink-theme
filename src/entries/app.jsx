@@ -364,8 +364,20 @@ async function navigate(url, { push = true } = {}) {
     ScrollTrigger.refresh();
     if (targetUrl.hash) scrollToHash(targetUrl.hash, { instant: true });
     else window.scrollTo(0, 0);
-    requestAnimationFrame(() => requestAnimationFrame(revealMain));
-    setTimeout(revealMain, 250);
+    // Al deshabilitar los triggers en keep-alive, cada scrub (túnel de servicios,
+    // cortina del hero) queda "congelado" en el progreso donde se dejó (p. ej. el
+    // FINAL). ScrollTrigger.update() fuerza a que todos recomputen su progreso
+    // según el scroll REAL donde acabamos de caer, así al llegar a #servicios el
+    // túnel se ve en su INICIO (no como si ya se hubiera scrolleado todo).
+    ScrollTrigger.update();
+    requestAnimationFrame(() => {
+      ScrollTrigger.update();
+      revealMain();
+    });
+    setTimeout(() => {
+      ScrollTrigger.update();
+      revealMain();
+    }, 200);
     return;
   }
 
