@@ -58,7 +58,7 @@ export default function Hero({
         </p>
 
         <div data-copy className="ink-hero__copy">
-          <h1 className="ink-gradient-heading text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl leading-[1.2]">
+          <h1 className="ink-gradient-heading text-[clamp(1.5rem,5.5vw,3.25rem)] font-semibold tracking-tight lg:text-6xl leading-[1.15]">
             {title}
           </h1>
           <p className="mx-auto mt-4 max-w-2xl text-base text-[var(--color-gray-text)] md:text-lg">

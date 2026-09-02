@@ -221,7 +221,7 @@ get_header();
 				</div>
 
 				<div class="mx-auto w-full max-w-2xl">
-					<h1 class="ink-gradient-heading mt-4 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
+					<h1 class="ink-gradient-heading mt-4 text-[clamp(1.5rem,5.5vw,3.25rem)] font-semibold tracking-tight lg:text-6xl leading-[1.15]">
 						<?php echo esc_html( $ink_home_data['hero']['title'] ); ?>
 					</h1>
 					<p class="mx-auto mt-4 max-w-2xl text-base text-[var(--color-gray-text)] md:text-lg">

@@ -66,7 +66,9 @@ export function useHeroReveal(sectionRef) {
         if (w >= 768) {
           return { s: 0.58, up: h * (short ? 0.16 : 0.2), dx: 0.16, stag: 0.04 };
         }
-        return { s: 0.72, up: h * (short ? 0.14 : 0.16), dx: 0.1, stag: 0.03 };
+        // Móvil: cartas más pequeñas y más arriba para que no se encimen con el
+        // copy (título largo, anclado abajo) al terminar el reveal.
+        return { s: 0.56, up: h * (short ? 0.22 : 0.26), dx: 0.1, stag: 0.03 };
       };
 
       const clientesFold = {
