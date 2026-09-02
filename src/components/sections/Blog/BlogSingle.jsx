@@ -30,7 +30,7 @@ export default function BlogSingle({
       <div className="ink-plans-page__body">
         <article className="ink-blog-article container-ink">
           {image ? (
-            <img className="ink-blog-article__hero" src={image} alt="" width="1200" height="675" />
+            <img className="ink-blog-article__hero" src={image} alt={pageTitle} width="1200" height="675" />
           ) : null}
           <div
             className="ink-blog-article__content"
@@ -47,7 +47,7 @@ export default function BlogSingle({
             <h2 className="ink-blog-related__title">Más del blog</h2>
             <div className="ink-blog-grid">
               {related.map((post) => (
-                <BlogCard key={post.id} {...post} />
+                <BlogCard key={post.id} {...post} headingLevel="h3" />
               ))}
             </div>
           </section>

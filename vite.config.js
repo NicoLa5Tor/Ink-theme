@@ -26,6 +26,15 @@ export default defineConfig(({ mode }) => ({
         entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/chunk-[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]',
+        // Vendors en chunks propios con hash estable: React y GSAP casi nunca
+        // cambian, así que se cachean a largo plazo y un cambio en el código de
+        // app deja de invalidar los ~121 KB de terceros. Además, al aparecer
+        // como `imports` en el manifest, el modulepreload de inc/enqueue.php
+        // los precarga en <head>.
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-dom/client'],
+          'vendor-gsap': ['gsap', 'gsap/ScrollTrigger', 'gsap/ScrollToPlugin'],
+        },
       },
     },
   },

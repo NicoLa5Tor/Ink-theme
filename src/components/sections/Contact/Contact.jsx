@@ -107,7 +107,7 @@ export default function Contact({
                 {avatars.length > 0 ? (
                   <span className="ink-contact-banner__avatars" aria-hidden="true">
                     {avatars.map((person) => (
-                      <img key={person.name} src={person.image} alt="" />
+                      <img key={person.name} src={person.image} alt="" loading="lazy" decoding="async" />
                     ))}
                   </span>
                 ) : null}
@@ -140,6 +140,8 @@ export default function Contact({
                   key={person.name}
                   src={person.image}
                   alt=""
+                  loading="lazy"
+                  decoding="async"
                   className={`ink-contact-banner__person ink-contact-banner__person--${index + 1}`}
                 />
               ))}

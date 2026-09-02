@@ -2,23 +2,32 @@ import { createRoot } from 'react-dom/client';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import '../styles/app.css';
 import { mountSiteChrome } from './mountChrome';
-import Hero from '../components/sections/Hero';
-import Services from '../components/sections/Services';
-import Results from '../components/sections/Results';
-import Portfolio from '../components/sections/Portfolio';
-import PlansTeaser from '../components/sections/Plans/PlansTeaser';
-import PlansPage from '../components/sections/Plans/PlansPage';
-import LegalPage from '../components/sections/Legal/LegalPage';
-import BlogIndex from '../components/sections/Blog/BlogIndex';
-import BlogSingle from '../components/sections/Blog/BlogSingle';
-import Contact from '../components/sections/Contact';
-import ShareButtons from '../components/sections/Share/ShareButtons';
 import {
   sameDocumentLocation,
   scrollAfterNavigation,
   scrollToHash,
   waitForPageReady,
 } from '../navigation/inkRouter';
+
+/**
+ * Mapa root DOM -> módulo de sección. Cada `load` es un import() dinámico con
+ * ruta literal, así que Rollup lo separa en su propio chunk y el navegador solo
+ * lo descarga cuando la página actual contiene ese root. Antes las 12 secciones
+ * se importaban estáticamente y viajaban en el bundle de TODAS las páginas
+ * (Blog/Legal/PlansPage cargaban en el home sin usarse).
+ */
+const SECTION_MODULES = {
+  'hero-root': { load: () => import('../components/sections/Hero'), key: 'hero' },
+  'services-root': { load: () => import('../components/sections/Services'), key: 'services' },
+  'results-root': { load: () => import('../components/sections/Results'), key: 'results' },
+  'portfolio-root': { load: () => import('../components/sections/Portfolio'), key: 'portfolio' },
+  'plans-root': { load: () => import('../components/sections/Plans/PlansTeaser'), key: 'plans' },
+  'plans-page-root': { load: () => import('../components/sections/Plans/PlansPage'), key: 'plansPage' },
+  'legal-page-root': { load: () => import('../components/sections/Legal/LegalPage'), key: 'legalPage' },
+  'blog-index-root': { load: () => import('../components/sections/Blog/BlogIndex'), key: 'blogIndex' },
+  'blog-single-root': { load: () => import('../components/sections/Blog/BlogSingle'), key: 'blogSingle' },
+  'contact-root': { load: () => import('../components/sections/Contact'), key: 'contact' },
+};
 
 /**
  * Bundle único cargado en TODAS las páginas. Responsabilidades:
@@ -52,32 +61,42 @@ function mountPage() {
   if (!main) return;
   const data = readPageData(main);
 
-  const mount = (id, Component, props) => {
+  // Solo se importan (y descargan) las secciones cuyo root existe en el <main>.
+  const pending = [];
+
+  for (const [id, { load, key }] of Object.entries(SECTION_MODULES)) {
     const el = document.getElementById(id);
-    if (!el) return;
-    const root = createRoot(el);
-    root.render(<Component {...props} />);
-    pageRoots.push(root);
-  };
+    if (!el) continue;
+    const props = data[key] ?? {};
+    pending.push(
+      load().then((mod) => {
+        const Component = mod.default;
+        const root = createRoot(el);
+        root.render(<Component {...props} />);
+        pageRoots.push(root);
+      }),
+    );
+  }
 
-  // Secciones del home
-  mount('hero-root', Hero, data.hero ?? {});
-  mount('services-root', Services, data.services ?? {});
-  mount('results-root', Results, data.results ?? {});
-  mount('portfolio-root', Portfolio, data.portfolio ?? {});
-  mount('plans-root', PlansTeaser, data.plans ?? {});
-  mount('plans-page-root', PlansPage, data.plansPage ?? {});
-  mount('legal-page-root', LegalPage, data.legalPage ?? {});
-  mount('blog-index-root', BlogIndex, data.blogIndex ?? {});
-  mount('blog-single-root', BlogSingle, data.blogSingle ?? {});
-  mount('contact-root', Contact, data.contact ?? {});
-
-  // Botones de compartir (single de blog)
+  // Botones de compartir (single de blog) — props desde el dataset, no del JSON.
   const shareEl = document.getElementById('share-buttons-root');
   if (shareEl) {
-    const root = createRoot(shareEl);
-    root.render(<ShareButtons url={shareEl.dataset.url} title={shareEl.dataset.title} />);
-    pageRoots.push(root);
+    pending.push(
+      import('../components/sections/Share/ShareButtons').then((mod) => {
+        const ShareButtons = mod.default;
+        const root = createRoot(shareEl);
+        root.render(<ShareButtons url={shareEl.dataset.url} title={shareEl.dataset.title} />);
+        pageRoots.push(root);
+      }),
+    );
+  }
+
+  // Las secciones montan de forma asíncrona (import dinámico): al terminar
+  // todas, se recalculan las posiciones de ScrollTrigger con el DOM ya hidratado.
+  if (pending.length) {
+    Promise.all(pending).then(() => {
+      requestAnimationFrame(() => ScrollTrigger.refresh());
+    });
   }
 }
 

@@ -31,7 +31,7 @@ get_header();
 			<div class="ink-plans-page__body">
 				<article class="ink-blog-article container-ink">
 					<?php if ( ! empty( $ink_blog_single['image'] ) ) : ?>
-						<img class="ink-blog-article__hero" src="<?php echo esc_url( $ink_blog_single['image'] ); ?>" alt="" width="1200" height="675">
+						<img class="ink-blog-article__hero" src="<?php echo esc_url( $ink_blog_single['image'] ); ?>" alt="<?php echo esc_attr( $ink_blog_single['pageTitle'] ); ?>" width="1200" height="675">
 					<?php endif; ?>
 					<div class="ink-blog-article__content">
 						<?php echo $ink_blog_single['content']; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- the_content already filtered. ?>
@@ -53,10 +53,10 @@ get_header();
 							<?php foreach ( $ink_blog_single['related'] as $post_card ) : ?>
 								<a href="<?php echo esc_url( $post_card['href'] ); ?>" class="ink-blog-card ink-plans-page__why-item">
 									<?php if ( ! empty( $post_card['image'] ) ) : ?>
-										<img class="ink-blog-card__image" src="<?php echo esc_url( $post_card['image'] ); ?>" alt="" width="640" height="360" loading="lazy">
+										<img class="ink-blog-card__image" src="<?php echo esc_url( $post_card['image'] ); ?>" alt="<?php echo esc_attr( $post_card['title'] ); ?>" width="640" height="360" loading="lazy">
 									<?php endif; ?>
 									<div class="ink-blog-card__body">
-										<h2><?php echo esc_html( $post_card['title'] ); ?></h2>
+										<h3><?php echo esc_html( $post_card['title'] ); ?></h3>
 										<p><?php echo esc_html( $post_card['excerpt'] ); ?></p>
 									</div>
 								</a>

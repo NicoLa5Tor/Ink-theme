@@ -65,7 +65,7 @@ $ink_logo_black_url = get_template_directory_uri() . '/assets/images/logo-black.
 	data-site-name="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>"
 	data-logo-black-url="<?php echo esc_url( $ink_logo_black_url ); ?>"
 	data-logo-white-url="<?php echo esc_url( $ink_logo_white_url ); ?>"
-	data-mask-image-url="<?php echo esc_url( get_template_directory_uri() . '/assets/hero/dash.png' ); ?>"
+	data-mask-image-url="<?php echo esc_url( ink_img_url( 19, '/assets/hero/dash.webp' ) ); ?>"
 >
 	<div class="flex items-center gap-4 rounded-full border border-white/15 bg-[rgba(10,10,10,0.85)] px-6 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.35)]">
 		<a href="<?php echo esc_url( home_url( '/' ) ); ?>" class="flex items-center" aria-label="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">

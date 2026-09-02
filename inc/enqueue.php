@@ -138,6 +138,23 @@ function ink_enqueue_assets() {
  * definido en @font-face (src/styles/app.css). El preload evita el salto
  * de layout (CLS) mientras carga el CSS.
  */
+/**
+ * Preload de la imagen del hero (candidata a LCP) solo en la portada, en alta
+ * prioridad. Usa la misma URL que la cortina/MaskedHeading (ink_img_url), así el
+ * navegador la descarga cuanto antes en vez de esperar a que el JS pinte el hero.
+ */
+add_action( 'wp_head', 'ink_preload_hero_lcp', 1 );
+
+function ink_preload_hero_lcp() {
+	if ( ! is_front_page() ) {
+		return;
+	}
+	printf(
+		'<link rel="preload" href="%s" as="image" fetchpriority="high">' . "\n",
+		esc_url( ink_img_url( 21, '/assets/hero/mas-clientes.webp' ) )
+	);
+}
+
 add_action( 'wp_head', 'ink_preload_fonts', 1 );
 
 function ink_preload_fonts() {
@@ -150,9 +167,12 @@ function ink_preload_fonts() {
 	);
 
 	foreach ( $fonts as $font_path ) {
+		// Root-relative (mismo formato que las URLs absolutas del @font-face en
+		// app.css) para que el preload y la petición real del navegador sean
+		// idénticas y no haya doble descarga.
 		printf(
 			'<link rel="preload" href="%s" as="font" type="font/woff2" crossorigin>' . "\n",
-			esc_url( "{$theme_uri}{$font_path}" )
+			esc_url( wp_make_link_relative( "{$theme_uri}{$font_path}" ) )
 		);
 	}
 }

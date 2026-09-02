@@ -15,19 +15,19 @@ function ink_get_contact_data() {
 	$people = array(
 		array(
 			'name'  => 'Felipe',
-			'image' => $theme_uri . '/assets/equipo/felipe.png',
+			'image' => ink_img_url( 33, '/assets/equipo/felipe.webp' ),
 		),
 		array(
 			'name'  => 'Alisson',
-			'image' => $theme_uri . '/assets/equipo/alisson.png',
+			'image' => ink_img_url( 31, '/assets/equipo/alisson.webp' ),
 		),
 		array(
 			'name'  => 'Ayure',
-			'image' => $theme_uri . '/assets/equipo/ayure.png',
+			'image' => ink_img_url( 32, '/assets/equipo/ayure.webp' ),
 		),
 		array(
 			'name'  => 'Guecela',
-			'image' => $theme_uri . '/assets/equipo/guecela.png',
+			'image' => ink_img_url( 34, '/assets/equipo/guecela.webp' ),
 		),
 	);
 

@@ -135,3 +135,19 @@ function ink_convert_upload_to_webp( $upload ) {
 
 	return $upload;
 }
+
+/**
+ * Devuelve la URL de una imagen del sitio: usa la biblioteca de medios (por
+ * attachment ID) cuando ese adjunto existe en el sitio actual —producción, donde
+ * se subieron los WebP optimizados— y cae al WebP local del tema en cualquier
+ * otro entorno (p. ej. dev). Así el mismo código sirve la versión ligera en
+ * ambos lados sin romperse.
+ *
+ * @param int    $attachment_id ID del adjunto en la media library (0 = ignorar).
+ * @param string $fallback_rel  Ruta relativa al tema del WebP de respaldo.
+ * @return string
+ */
+function ink_img_url( $attachment_id, $fallback_rel ) {
+	$url = $attachment_id ? wp_get_attachment_image_url( $attachment_id, 'full' ) : false;
+	return $url ? $url : get_template_directory_uri() . $fallback_rel;
+}

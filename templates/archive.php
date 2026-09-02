@@ -46,7 +46,7 @@ get_header();
 						<?php foreach ( $ink_blog_data['posts'] as $post_card ) : ?>
 							<a href="<?php echo esc_url( $post_card['href'] ); ?>" class="ink-blog-card ink-plans-page__why-item">
 								<?php if ( ! empty( $post_card['image'] ) ) : ?>
-									<img class="ink-blog-card__image" src="<?php echo esc_url( $post_card['image'] ); ?>" alt="" width="640" height="360" loading="lazy">
+									<img class="ink-blog-card__image" src="<?php echo esc_url( $post_card['image'] ); ?>" alt="<?php echo esc_attr( $post_card['title'] ); ?>" width="640" height="360" loading="lazy">
 								<?php else : ?>
 									<div class="ink-blog-card__image ink-blog-card__image--empty" aria-hidden="true"></div>
 								<?php endif; ?>

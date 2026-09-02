@@ -35,7 +35,7 @@ export default function Services({ eyebrow, title, services = [] }) {
               ) : (
                 <div key={`i-${beat.title}-${i}`} data-tunnel-item data-type="image" className="ink-tunnel-item">
                   <a href={beat.href} className={`ink-tunnel-shot${beat.frame === 'portrait' ? ' ink-tunnel-shot--portrait' : ''}`} aria-label={beat.title}>
-                    {beat.image ? <img src={beat.image} alt={beat.title} /> : null}
+                    {beat.image ? <img src={beat.image} alt={beat.title} loading="lazy" decoding="async" /> : null}
                   </a>
                 </div>
               ),

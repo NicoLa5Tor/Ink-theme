@@ -5,11 +5,11 @@ import CookieConsent from '../components/layout/CookieConsent/CookieConsent';
 
 /**
  * Monta las islas de interactividad compartidas por todas las plantillas
- * (header flotante con efecto GlassSurface + botón de WhatsApp flotante).
- * Se usa createRoot (no hydrateRoot) a propósito: GlassSurface envuelve el
- * contenido en nodos (SVG + divs) que no existen en el fallback CSS de
- * header.php, así que un intento de hidratación fallaría igual. header.php
- * ya deja el nav completo y navegable como fallback si JS no carga.
+ * (header flotante con GooeyNav + footer/WhatsApp flotante + banner de cookies).
+ * Se usa createRoot (no hydrateRoot) a propósito: el Header monta una estructura
+ * (nav con partículas, timelines) que no coincide con el fallback CSS de
+ * header.php, así que un intento de hidratación fallaría igual. header.php ya
+ * deja el nav completo y navegable como fallback si JS no carga.
  */
 export function mountSiteChrome() {
   const headerRoot = document.getElementById('site-header-root');

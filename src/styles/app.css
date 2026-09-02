@@ -351,9 +351,15 @@
     letter-spacing: -0.02em;
   }
 
+  /*
+   * Rutas ABSOLUTAS (root-relative) a propósito: Vite reescribe/hashea las URLs
+   * relativas, lo que las desalinearía del <link rel="preload"> de inc/enqueue.php
+   * (que apunta a /assets/fonts/...). Con la ruta absoluta, Vite las deja intactas
+   * y preload + @font-face piden EXACTAMENTE el mismo archivo (sin doble descarga).
+   */
   @font-face {
     font-family: "Montserrat";
-    src: url("../../assets/fonts/montserrat/montserrat-600.woff2") format("woff2");
+    src: url("/wp-content/themes/ink-theme/assets/fonts/montserrat/montserrat-600.woff2") format("woff2");
     font-weight: 600;
     font-style: normal;
     font-display: swap;
@@ -361,7 +367,7 @@
 
   @font-face {
     font-family: "Montserrat";
-    src: url("../../assets/fonts/montserrat/montserrat-800.woff2") format("woff2");
+    src: url("/wp-content/themes/ink-theme/assets/fonts/montserrat/montserrat-800.woff2") format("woff2");
     font-weight: 800;
     font-style: normal;
     font-display: swap;
@@ -369,7 +375,7 @@
 
   @font-face {
     font-family: "Inter";
-    src: url("../../assets/fonts/inter/inter-400.woff2") format("woff2");
+    src: url("/wp-content/themes/ink-theme/assets/fonts/inter/inter-400.woff2") format("woff2");
     font-weight: 400;
     font-style: normal;
     font-display: swap;
@@ -377,7 +383,7 @@
 
   @font-face {
     font-family: "Inter";
-    src: url("../../assets/fonts/inter/inter-600.woff2") format("woff2");
+    src: url("/wp-content/themes/ink-theme/assets/fonts/inter/inter-600.woff2") format("woff2");
     font-weight: 600;
     font-style: normal;
     font-display: swap;
@@ -1353,7 +1359,7 @@
     color: #0891b2;
   }
 
-  .ink-blog-card__body h2 {
+  .ink-blog-card__body :is(h2, h3) {
     font-size: 1.15rem;
     font-weight: 700;
     line-height: 1.3;
@@ -1486,7 +1492,7 @@
   .ink-light-rest .ink-plans-page__perks-title,
   .ink-light-rest .ink-plans-page__why-item h2,
   .ink-light-rest .ink-legal-section h2,
-  .ink-light-rest .ink-blog-card__body h2,
+  .ink-light-rest .ink-blog-card__body :is(h2, h3),
   .ink-light-rest .ink-blog-related__title {
     background-image: none;
     -webkit-background-clip: unset;
