@@ -72,7 +72,11 @@ export function scrollToHash(hash, { duration = 0.75, instant = false } = {}) {
   }
 
   gsap.to(window, {
-    scrollTo: { y: target, offsetY: NAV_SCROLL_OFFSET, autoKill: true },
+    // autoKill: false -> el destino (p. ej. #contacto) está DESPUÉS de las
+    // secciones con pin; al pasar por un pin, anticipatePin empuja levemente el
+    // scroll y, con autoKill:true, GSAP creía que el usuario tomó el control y
+    // mataba la animación a medias (por eso a veces "no llegaba" a contacto).
+    scrollTo: { y: target, offsetY: NAV_SCROLL_OFFSET, autoKill: false },
     duration: instant ? 0 : duration,
     ease: 'power2.inOut',
     overwrite: 'auto',
