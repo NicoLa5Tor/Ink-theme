@@ -28,19 +28,92 @@ export function sameDocumentLocation(a, b) {
 }
 
 /**
- * Espera a que React monte secciones y ScrollTrigger recalcule pins.
+ * Espera a que la página esté REALMENTE asentada antes de scrollear:
+ *   1. `mounted`: promesa de mountPage() (terminaron los import() de secciones).
+ *   2. doble rAF: root.render() de React es asíncrono; los pins se crean en el
+ *      useLayoutEffect que corre cuando React pinta. Tras dos frames el commit
+ *      ya ocurrió y los pin-spacers están en el DOM.
+ *   3. document.fonts.ready: las fuentes de marca cambian alturas de texto.
+ *   4. ScrollTrigger.refresh(): recalcula con la geometría final.
+ * Reemplaza el setTimeout(120) adivinado por esperas deterministas, para que el
+ * scroll a un ancla no se dispare antes de que existan los pins.
+ *
+ * @param {Promise<unknown>} [mounted]  promesa de montaje de las secciones
  */
-export function waitForPageReady() {
-  return new Promise((resolve) => {
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        ScrollTrigger.refresh();
-        setTimeout(() => {
-          ScrollTrigger.refresh();
-          resolve();
-        }, 120);
-      });
+export function waitForPageReady(mounted) {
+  const twoFrames = () =>
+    new Promise((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(resolve));
     });
+
+  return Promise.resolve(mounted)
+    .catch(() => {})
+    .then(twoFrames)
+    .then(() => (document.fonts?.ready ? document.fonts.ready.catch(() => {}) : null))
+    .then(() => {
+      ScrollTrigger.refresh();
+    });
+}
+
+/**
+ * Aterriza en un ancla y CORRIGE la posición mientras el layout se asienta.
+ *
+ * Al montar la página (navegación SPA o carga directa), los pins de
+ * ScrollTrigger (Hero/Servicios/Portafolio) se crean de forma asíncrona y cada
+ * uno añade su "pin-spacer" (miles de px de scroll). Si se salta al ancla antes
+ * de que TODOS existan, se cae en la posición del layout "corto" y luego la
+ * página crece y el ancla queda mucho más abajo -> el scroll se ve "a medias".
+ *
+ * En vez de adivinar el momento, este helper hace un bucle por frames: en cada
+ * frame fuerza un refresh, recalcula la posición del ancla y salta ahí (salto
+ * instantáneo = invisible mientras el <main> está oculto). Termina cuando la
+ * posición se estabiliza (misma, ±2px, varios frames seguidos) o por timeout.
+ * Así se revela recién cuando ya está en su sitio final.
+ *
+ * @param {string} hash
+ * @param {{ offset?: number, timeout?: number, stableFrames?: number }} [options]
+ * @returns {Promise<void>}
+ */
+export function landOnAnchorSettled(hash, { offset = NAV_SCROLL_OFFSET, timeout = 1500, stableTicks = 3, interval = 32 } = {}) {
+  const id = hash?.startsWith('#') ? hash.slice(1) : hash;
+  return new Promise((resolve) => {
+    if (!id) {
+      window.scrollTo(0, 0);
+      resolve();
+      return;
+    }
+    // Un solo refresh al entrar (la página ya está montada al llamarse esto).
+    ScrollTrigger.refresh();
+    const start = performance.now();
+    let lastTop = null;
+    let stable = 0;
+
+    // setTimeout (no requestAnimationFrame): rAF se CONGELA en pestañas en
+    // segundo plano; si el usuario cambia de pestaña a mitad de navegación el
+    // aterrizaje nunca ocurriría. setTimeout sigue corriendo (throttled) y
+    // garantiza que caiga en la sección.
+    const step = () => {
+      const el = document.getElementById(id);
+      const elapsed = performance.now() - start;
+
+      if (!el) {
+        if (elapsed < timeout) setTimeout(step, interval);
+        else resolve();
+        return;
+      }
+
+      const top = Math.max(0, Math.round(el.getBoundingClientRect().top + window.scrollY - offset));
+      window.scrollTo(0, top);
+
+      if (lastTop !== null && Math.abs(top - lastTop) <= 2) stable += 1;
+      else stable = 0;
+      lastTop = top;
+
+      if (stable >= stableTicks || elapsed >= timeout) resolve();
+      else setTimeout(step, interval);
+    };
+
+    setTimeout(step, interval);
   });
 }
 

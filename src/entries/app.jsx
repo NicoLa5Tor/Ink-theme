@@ -3,9 +3,10 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import '../styles/app.css';
 import { mountSiteChrome } from './mountChrome';
 import {
+  landOnAnchorSettled,
+  normalizePath,
   sameDocumentLocation,
   scrollToHash,
-  waitForPageReady,
 } from '../navigation/inkRouter';
 
 // En móvil, mostrar/ocultar la barra de direcciones cambia innerHeight y dispara
@@ -49,8 +50,44 @@ const SECTION_MODULES = {
 
 const MAIN_ID = 'contenido-principal';
 
-// Roots de React montados en el <main> actual (se desmontan antes de cada swap).
+// --- Keep-alive de vistas ---------------------------------------------------
+// En vez de destruir el <main> al navegar (re-fetch + re-montar React + recrear
+// los pins de GSAP, lo que hacía nacer la página "corta" y crecer), cada vista se
+// mantiene VIVA: al salir se desconecta del DOM pero se conservan su nodo, sus
+// roots de React y sus ScrollTriggers (solo se DESHABILITAN). Al volver, se
+// re-inserta tal cual, se rehabilitan sus triggers y un refresh síncrono la deja
+// ALTA de una: no hay re-fetch, ni re-montaje, ni re-ejecución de la intro, y el
+// scroll a #contacto cae perfecto sin bucle de asentamiento.
+
+const BG_MAX = 6; // vistas de fondo (además de la actual) que se mantienen vivas.
+
+// Vista conectada al DOM ahora mismo: { key, node, roots, doc }.
+let current = null;
+// Vistas vivas pero desconectadas, por clave de ruta.
+const bgViews = new Map();
+// Roots de React de la vista en construcción (mountPage los va llenando).
 let pageRoots = [];
+
+function viewKey(u) {
+  const url = u instanceof URL ? u : new URL(u, window.location.href);
+  return normalizePath(url.pathname) + (url.search || '');
+}
+
+// ScrollTriggers cuyo `trigger` vive dentro de un nodo. `node.contains` sigue
+// siendo válido aunque el subárbol esté desconectado del documento.
+function triggersWithin(node) {
+  return ScrollTrigger.getAll().filter((st) => st.trigger && node.contains(st.trigger));
+}
+
+// Snapshot del <head> actual para poder restaurarlo al volver a una vista viva
+// (updateHead lee .title y .head.querySelector; body.className también).
+function captureDocSnapshot() {
+  return {
+    title: document.title,
+    head: document.head.cloneNode(true),
+    body: { className: document.body.className },
+  };
+}
 
 function readPageData(scope) {
   const el = scope.querySelector('#ink-page-data');
@@ -109,31 +146,94 @@ function mountPage() {
   return done;
 }
 
-function unmountPage() {
-  // Cada root de React se desmonta (sus cleanups matan los ScrollTriggers de
-  // las animaciones), evitando fugas y triggers huérfanos.
-  // try/catch: ScrollTrigger envuelve elementos fijados en "pin-spacer" (mueve
-  // nodos del DOM), así que React puede lanzar removeChild ("node is not a
-  // child") al desmontar. Es benigno aquí: el <main> completo se reemplaza
-  // enseguida, descartando cualquier nodo residual.
-  // try/catch: al desmontar, React puede lanzar removeChild ("node is not a
-  // child") porque GSAP/MaskedHeading manipulan el DOM imperativamente (pin-
-  // spacers, SVG). Es un problema pre-existente y benigno aquí: el <main>
-  // completo se reemplaza enseguida, descartando cualquier nodo residual. El
-  // try/catch evita que rompa el flujo de navegación.
-  pageRoots.forEach((root) => {
+// Destruye una vista de verdad (al evacuarla del keep-alive por el tope BG_MAX):
+// mata sus ScrollTriggers y desmonta sus roots de React.
+// try/catch en unmount: GSAP/MaskedHeading mueven nodos del DOM (pin-spacers,
+// SVG), así que React puede lanzar removeChild al desmontar; es benigno porque
+// el nodo entero se descarta.
+function destroyView(view) {
+  triggersWithin(view.node).forEach((st) => st.kill(true));
+  view.roots.forEach((root) => {
     try {
       root.unmount();
     } catch {
-      /* nodo ya movido por GSAP/SVG; se descarta con el reemplazo del <main> */
+      /* nodo movido por GSAP/SVG; se descarta con la vista */
     }
   });
-  pageRoots = [];
 }
 
 // ---------------------------------------------------------------------------
 // Router AJAX
 // ---------------------------------------------------------------------------
+
+// Caché de HTML por URL (solo esta sesión; se limpia al recargar de verdad).
+// Volver a una página ya visitada —o clicar un link ya "prefetcheado" al pasar
+// el mouse— reutiliza el HTML y evita pegarle otra vez al servidor: el
+// intercambio del <main> es inmediato. Tope simple para no crecer sin límite.
+const PAGE_CACHE_MAX = 12;
+const pageCache = new Map();
+// fetch en vuelo por URL: evita disparar dos peticiones si el prefetch (hover) y
+// el clic ocurren casi a la vez; ambos esperan la misma promesa.
+const pageInflight = new Map();
+
+function cachePageHtml(key, html) {
+  pageCache.set(key, html);
+  // Descarta la entrada más antigua si se pasa del tope (Map preserva orden).
+  if (pageCache.size > PAGE_CACHE_MAX) {
+    pageCache.delete(pageCache.keys().next().value);
+  }
+}
+
+/**
+ * Devuelve el HTML de una URL, desde caché si está; si no, hace el fetch (una
+ * sola petición aunque se llame varias veces en paralelo) y lo guarda.
+ *
+ * @param {string} fetchUrl
+ * @returns {Promise<string>}
+ */
+function fetchPageHtml(fetchUrl) {
+  if (pageCache.has(fetchUrl)) return Promise.resolve(pageCache.get(fetchUrl));
+  if (pageInflight.has(fetchUrl)) return pageInflight.get(fetchUrl);
+
+  const req = fetch(fetchUrl, {
+    headers: { 'X-Requested-With': 'ink-ajax' },
+    credentials: 'same-origin',
+  })
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.text();
+    })
+    .then((html) => {
+      cachePageHtml(fetchUrl, html);
+      pageInflight.delete(fetchUrl);
+      return html;
+    })
+    .catch((err) => {
+      pageInflight.delete(fetchUrl);
+      throw err;
+    });
+
+  pageInflight.set(fetchUrl, req);
+  return req;
+}
+
+/**
+ * Prefetch silencioso: precarga el HTML a la caché al detectar intención (hover/
+ * foco). Nunca navega ni lanza; si falla, se ignora y el clic hará el fetch real.
+ *
+ * @param {string} href
+ */
+function prefetchPage(href) {
+  let fetchUrl;
+  try {
+    const u = new URL(href, window.location.href);
+    fetchUrl = `${u.origin}${u.pathname}${u.search}`;
+  } catch {
+    return;
+  }
+  if (pageCache.has(fetchUrl) || pageInflight.has(fetchUrl)) return;
+  fetchPageHtml(fetchUrl).catch(() => {});
+}
 
 function isInternalNavigable(anchor) {
   if (!anchor || anchor.target === '_blank' || anchor.hasAttribute('download')) return false;
@@ -185,85 +285,111 @@ function pushPageview(pathname) {
 async function navigate(url, { push = true } = {}) {
   const targetUrl = new URL(url, window.location.href);
   const fetchUrl = `${targetUrl.origin}${targetUrl.pathname}${targetUrl.search}`;
+  const key = viewKey(targetUrl);
 
-  let html;
-  try {
-    const res = await fetch(fetchUrl, {
-      headers: { 'X-Requested-With': 'ink-ajax' },
-      credentials: 'same-origin',
-    });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    html = await res.text();
-  } catch {
-    window.location.href = url;
+  // Ya estamos en esa ruta (mismo documento): solo reposicionar.
+  if (current && key === current.key) {
+    if (push) window.history.pushState({ ink: true }, '', url);
+    if (targetUrl.hash) scrollToHash(targetUrl.hash);
+    else window.scrollTo(0, 0);
     return;
   }
 
-  const newDoc = new DOMParser().parseFromString(html, 'text/html');
-  const newMain = newDoc.getElementById(MAIN_ID);
-  if (!newMain) {
-    window.location.href = url;
-    return;
+  // Nodo destino: reutilizar la vista viva si existe, o construir una nueva desde
+  // el HTML SSR de WordPress.
+  const reuse = bgViews.get(key);
+  let targetNode;
+  let targetDoc;
+  const isFresh = !reuse;
+
+  if (reuse) {
+    targetNode = reuse.node;
+    targetDoc = reuse.doc;
+    bgViews.delete(key);
+  } else {
+    let html;
+    try {
+      html = await fetchPageHtml(fetchUrl);
+    } catch {
+      window.location.href = url;
+      return;
+    }
+    targetDoc = new DOMParser().parseFromString(html, 'text/html');
+    const newMain = targetDoc.getElementById(MAIN_ID);
+    if (!newMain) {
+      window.location.href = url;
+      return;
+    }
+    targetNode = document.importNode(newMain, true);
   }
 
-  // Se intercambia el <main> OCULTO y se revela solo cuando las secciones ya
-  // montaron y aplicaron su estado inicial (los gsap.set corren en
-  // useLayoutEffect, antes de pintar). Así, al volver a una página (p. ej. Inicio
-  // en la SPA), nunca se ve el HTML SSR sin animar ("como si ya hubiera hecho
-  // scroll") antes de que GSAP tome el control. No se usa View Transition aquí:
-  // su snapshot del DOM chocaba con el re-montaje de React (removeChild).
-  const incoming = document.importNode(newMain, true);
-  incoming.style.visibility = 'hidden';
+  targetNode.style.visibility = 'hidden';
 
-  unmountPage();
-  document.getElementById(MAIN_ID).replaceWith(incoming);
-  updateHead(newDoc);
-  document.body.className = newDoc.body.className;
+  // Intercambio: replaceWith desconecta la vista actual y conecta la destino en
+  // el mismo lugar. La actual NO se destruye: se guarda viva (sus triggers se
+  // deshabilitan) para poder volver a ella instantánea y alta.
+  const outgoing = current;
+  document.getElementById(MAIN_ID).replaceWith(targetNode);
+  if (outgoing) {
+    triggersWithin(outgoing.node).forEach((st) => st.disable());
+    bgViews.set(outgoing.key, outgoing);
+    while (bgViews.size > BG_MAX) {
+      const oldestKey = bgViews.keys().next().value;
+      const victim = bgViews.get(oldestKey);
+      bgViews.delete(oldestKey);
+      destroyView(victim);
+    }
+  }
+
+  updateHead(targetDoc);
+  document.body.className = targetDoc.body.className;
   if (push) window.history.pushState({ ink: true }, '', url);
   window.dispatchEvent(new CustomEvent('ink:navigated'));
   pushPageview(targetUrl.pathname);
-
-  // Reset del scroll a tope ANTES de revelar la vista nueva y de montar los
-  // pins. La vista nueva nace arriba y ScrollTrigger calcula los pins desde y=0,
-  // evitando que la página se revele en la posición vieja (p. ej. abajo, si
-  // venías scrolleado) y luego "salte" arriba. Si hay ancla (#hash), no se toca:
-  // se posiciona más abajo, ya con las secciones montadas.
-  if (!targetUrl.hash) {
-    window.scrollTo(0, 0);
-  }
 
   let revealed = false;
   const revealMain = () => {
     if (revealed) return;
     revealed = true;
-    incoming.style.visibility = '';
+    targetNode.style.visibility = '';
   };
-  // Revelar cuando las secciones montaron (dos rAF: el gsap.set del hero corre
-  // en useLayoutEffect, antes de pintar). El reveal se dispara pase lo que pase
-  // —éxito o error de montaje— y hay un respaldo por timeout FUERA del then para
-  // que el <main> nunca quede oculto (incluye pestaña en segundo plano).
-  const mounted = mountPage();
-  mounted.then(
-    () => requestAnimationFrame(() => requestAnimationFrame(revealMain)),
-    revealMain,
-  );
-  setTimeout(revealMain, 250);
 
-  // Scroll al ancla (#servicios, #contacto, etc.) SOLO cuando la página está
-  // realmente lista. Dos esperas encadenadas, ambas necesarias:
-  //   1. mounted: resuelve cuando terminan los import() de las secciones.
-  //   2. waitForPageReady: espera a que React PINTE (render de createRoot es
-  //      asíncrono; los pins se crean en useLayoutEffect al pintar) y recalcula
-  //      ScrollTrigger con margen.
-  // Si se hacía antes (una sola de las dos, o un solo rAF), los pins
-  // Hero/Servicios/Portfolio aún no existían, la página era corta y el offsetTop
-  // del ancla salía pequeño -> el scroll terminaba "a mitad de servicios". Afecta
-  // a TODAS las navegaciones a ancla, no solo contacto. Sin ancla ya reseteamos a
-  // y=0 arriba, no hay nada que hacer.
+  if (!isFresh) {
+    // VISTA REUTILIZADA: React ya está montado y los pins ya existen. Rehabilitar
+    // sus triggers y refrescar (síncrono → la página nace ALTA de una), luego
+    // posicionar y revelar. Sin re-fetch, sin re-montaje, sin re-intro.
+    current = { key, node: targetNode, roots: reuse.roots, doc: reuse.doc };
+    pageRoots = reuse.roots;
+    triggersWithin(targetNode).forEach((st) => st.enable());
+    ScrollTrigger.refresh();
+    if (targetUrl.hash) scrollToHash(targetUrl.hash, { instant: true });
+    else window.scrollTo(0, 0);
+    requestAnimationFrame(() => requestAnimationFrame(revealMain));
+    setTimeout(revealMain, 250);
+    return;
+  }
+
+  // VISTA NUEVA: montar React. La actual nace arriba (sin ancla) o se asienta en
+  // el ancla con el <main> oculto hasta que los pins existen (landOnAnchorSettled).
+  pageRoots = [];
+  current = { key, node: targetNode, roots: pageRoots, doc: targetDoc };
+  if (!targetUrl.hash) window.scrollTo(0, 0);
+  const mounted = mountPage();
+
   if (targetUrl.hash) {
-    const runHashScroll = () =>
-      waitForPageReady().then(() => scrollToHash(targetUrl.hash, { instant: false }));
-    mounted.then(runHashScroll, runHashScroll);
+    const fontsReady = document.fonts?.ready ? document.fonts.ready.catch(() => {}) : Promise.resolve();
+    Promise.resolve(mounted)
+      .catch(() => {})
+      .then(() => fontsReady)
+      .then(() => landOnAnchorSettled(targetUrl.hash))
+      .then(revealMain, revealMain);
+    setTimeout(revealMain, 2200); // respaldo duro: nunca dejar el <main> oculto
+  } else {
+    mounted.then(
+      () => requestAnimationFrame(() => requestAnimationFrame(revealMain)),
+      revealMain,
+    );
+    setTimeout(revealMain, 250);
   }
 }
 
@@ -302,6 +428,21 @@ function initRouter() {
   window.addEventListener('popstate', () => {
     navigate(window.location.href, { push: false });
   });
+
+  // Prefetch al detectar intención: al pasar el mouse / enfocar / tocar un link
+  // interno, se precarga su HTML a la caché para que el clic sea inmediato. Es
+  // silencioso e idempotente (prefetchPage ignora URLs ya cacheadas/en vuelo y
+  // nunca lanza). No se prefetchea el ancla de la misma página (no hay fetch).
+  const maybePrefetch = (e) => {
+    const anchor = e.target.closest?.('a[href]');
+    if (!isInternalNavigable(anchor)) return;
+    const url = new URL(anchor.href, window.location.href);
+    if (sameDocumentLocation(url, window.location.href)) return;
+    prefetchPage(anchor.href);
+  };
+  document.addEventListener('mouseover', maybePrefetch, { passive: true });
+  document.addEventListener('focusin', maybePrefetch, { passive: true });
+  document.addEventListener('touchstart', maybePrefetch, { passive: true });
 }
 
 /**
@@ -328,7 +469,18 @@ function revealPage() {
 
 // Arranque
 mountSiteChrome();
-mountPage().then(revealPage);
+const bootMounted = mountPage();
+bootMounted.then(revealPage);
+// Vista inicial (la que renderizó WordPress): queda como `current` viva. Su
+// snapshot de <head> permite restaurarla al volver por keep-alive. `pageRoots`
+// es el mismo array que mountPage está llenando, así que la referencia se
+// mantiene en sync.
+current = {
+  key: viewKey(window.location.href),
+  node: document.getElementById(MAIN_ID),
+  roots: pageRoots,
+  doc: captureDocSnapshot(),
+};
 initRouter();
 
 // Respaldo: si algo se demora demasiado, revela igual (nunca dejar la página
@@ -336,9 +488,14 @@ initRouter();
 setTimeout(revealPage, 3000);
 
 if (window.location.hash) {
-  waitForPageReady().then(() => {
-    scrollToHash(window.location.hash, { instant: true });
-  });
+  // Carga directa con ancla (p. ej. abrir /#contacto desde Google): mismo bucle
+  // de asentamiento que la navegación SPA, para caer en la sección ya con los
+  // pins creados y no "a medias".
+  const fontsReady = document.fonts?.ready ? document.fonts.ready.catch(() => {}) : Promise.resolve();
+  Promise.resolve(bootMounted)
+    .catch(() => {})
+    .then(() => fontsReady)
+    .then(() => landOnAnchorSettled(window.location.hash));
 }
 
 requestAnimationFrame(() => ScrollTrigger.refresh());
