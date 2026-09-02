@@ -116,8 +116,9 @@ export function useServicesTunnel(sectionRef) {
       });
     };
 
+    let tunnelST;
     const ctx = gsap.context(() => {
-      ScrollTrigger.create({
+      tunnelST = ScrollTrigger.create({
         trigger: section,
         start: 'top top',
         end: () => `+=${travel}`,
@@ -151,7 +152,27 @@ export function useServicesTunnel(sectionRef) {
     render();
     requestAnimationFrame(() => ScrollTrigger.refresh());
 
+    // Resync al navegar (keep-alive): esta sección se mantiene viva entre
+    // navegaciones. Si se dejó scrolleada (túnel blanco/estado final) y se vuelve
+    // a #servicios, el color quedaba pegado en blanco porque paintBack no se
+    // re-dispara. En 'ink:navigated' (que el router emite ya con el scroll en la
+    // sección) se fija INSTANTÁNEO el color/estado según el progreso real.
+    const resync = () => {
+      if (!tunnelST) return;
+      const p = tunnelST.progress;
+      progress = p;
+      const idx = stepIndex(p);
+      const step = COLOR_STEPS[idx];
+      lastColor = idx;
+      gsap.set(colorTargets, { backgroundColor: step.bg });
+      if (mask) gsap.set(mask, { opacity: step.mask });
+      section.classList.toggle('is-light', step.light);
+      render();
+    };
+    window.addEventListener('ink:navigated', resync);
+
     return () => {
+      window.removeEventListener('ink:navigated', resync);
       gsap.ticker.remove(render);
       ctx.revert();
     };

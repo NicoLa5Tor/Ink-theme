@@ -73,10 +73,36 @@ function viewKey(u) {
   return normalizePath(url.pathname) + (url.search || '');
 }
 
-// ScrollTriggers cuyo `trigger` vive dentro de un nodo. `node.contains` sigue
-// siendo válido aunque el subárbol esté desconectado del documento.
-function triggersWithin(node) {
-  return ScrollTrigger.getAll().filter((st) => st.trigger && node.contains(st.trigger));
+// ScrollTriggers de la chrome persistente (header), capturados al arranque antes
+// de montar la primera vista. Se excluyen del rastreo de vistas.
+let chromeTriggers = new Set();
+
+// Los ScrollTriggers de una vista se capturan EN EL MOMENTO DEL STASH (síncrono),
+// NO por `node.contains(st.trigger)` (los pin-spacers rompen ese contains y los
+// triggers quedaban "fantasma": desconectados pero enabled, acumulándose y
+// pintando sobre la vista real → el túnel de servicios quedaba blanco). Tampoco
+// por diff con rAF (se congela en pestañas en segundo plano). En el stash, la
+// vista saliente es la ÚNICA con triggers habilitados fuera de la chrome (las
+// demás vistas vivas están deshabilitadas), así que ese filtro los identifica.
+function activeViewTriggers() {
+  return ScrollTrigger.getAll().filter((st) => st.enabled && !chromeTriggers.has(st));
+}
+
+// Recolector de triggers "fugados": los de las vistas vivas de fondo están
+// DESHABILITADOS, y los de la vista actual están conectados al DOM. Así, cualquier
+// trigger que esté HABILITADO pero con su elemento DESCONECTADO es un huérfano
+// (p. ej. un túnel duplicado que sobrevivió) → se mata para que deje de correr y
+// pintar. No toca ni la chrome ni las vistas stasheadas.
+function killLeakedTriggers() {
+  ScrollTrigger.getAll().forEach((st) => {
+    if (st.enabled && st.trigger && !chromeTriggers.has(st) && !document.contains(st.trigger)) {
+      try {
+        st.kill(true);
+      } catch {
+        /* ya muerto */
+      }
+    }
+  });
 }
 
 // Snapshot del <head> actual para poder restaurarlo al volver a una vista viva
@@ -152,7 +178,13 @@ function mountPage() {
 // SVG), así que React puede lanzar removeChild al desmontar; es benigno porque
 // el nodo entero se descarta.
 function destroyView(view) {
-  triggersWithin(view.node).forEach((st) => st.kill(true));
+  (view.triggers || []).forEach((st) => {
+    try {
+      st.kill(true);
+    } catch {
+      /* trigger ya muerto */
+    }
+  });
   view.roots.forEach((root) => {
     try {
       root.unmount();
@@ -336,9 +368,21 @@ async function navigate(url, { push = true } = {}) {
   // el mismo lugar. La actual NO se destruye: se guarda viva (sus triggers se
   // deshabilitan) para poder volver a ella instantánea y alta.
   const outgoing = current;
+  if (outgoing) {
+    // Capturar los triggers de la vista saliente ANTES de desconectarla (aún es
+    // la única con triggers habilitados fuera de la chrome), y deshabilitarlos
+    // para que no sigan corriendo/pintando mientras está de fondo.
+    outgoing.triggers = activeViewTriggers();
+  }
   document.getElementById(MAIN_ID).replaceWith(targetNode);
   if (outgoing) {
-    triggersWithin(outgoing.node).forEach((st) => st.disable());
+    outgoing.triggers.forEach((st) => {
+      try {
+        st.disable();
+      } catch {
+        /* trigger ya deshabilitado/muerto */
+      }
+    });
     bgViews.set(outgoing.key, outgoing);
     while (bgViews.size > BG_MAX) {
       const oldestKey = bgViews.keys().next().value;
@@ -347,6 +391,8 @@ async function navigate(url, { push = true } = {}) {
       destroyView(victim);
     }
   }
+  // Barrer triggers huérfanos (enabled pero desconectados) que hayan sobrevivido.
+  killLeakedTriggers();
 
   updateHead(targetDoc);
   document.body.className = targetDoc.body.className;
@@ -369,28 +415,36 @@ async function navigate(url, { push = true } = {}) {
     // VISTA REUTILIZADA: React ya está montado y los pins ya existen. Rehabilitar
     // sus triggers y refrescar (síncrono → la página nace ALTA de una), luego
     // posicionar y revelar. Sin re-fetch, sin re-montaje, sin re-intro.
-    current = { key, node: targetNode, roots: reuse.roots, doc: reuse.doc };
+    current = { key, node: targetNode, roots: reuse.roots, doc: reuse.doc, triggers: reuse.triggers || [] };
     pageRoots = reuse.roots;
-    triggersWithin(targetNode).forEach((st) => st.enable());
-    ScrollTrigger.refresh();
+    (reuse.triggers || []).forEach((st) => {
+      try {
+        st.enable();
+      } catch {
+        /* trigger muerto */
+      }
+    });
+    // Matar cualquier trigger huérfano que se haya reactivado al re-habilitar
+    // (p. ej. un túnel duplicado con su elemento ya desconectado).
+    killLeakedTriggers();
+    // Primero fijar el scroll, LUEGO refrescar: refresh() "snapea" los scrubs a la
+    // posición actual sin easing (si se refresca antes de scrollear, el scrub
+    // arranca desde el valor viejo y se ve el fundido blanco->negro del túnel).
     if (targetUrl.hash) scrollToHash(targetUrl.hash, { instant: true });
     else window.scrollTo(0, 0);
-    // Al deshabilitar los triggers en keep-alive, cada scrub (túnel de servicios,
-    // cortina del hero) queda "congelado" en el progreso donde se dejó (p. ej. el
-    // FINAL). ScrollTrigger.update() fuerza a que todos recomputen su progreso
-    // según el scroll REAL donde acabamos de caer, así al llegar a #servicios el
-    // túnel se ve en su INICIO (no como si ya se hubiera scrolleado todo).
+    ScrollTrigger.refresh();
     ScrollTrigger.update();
-    // Ahora que el scroll ya está en el ancla, recalcular el ítem activo del nav
-    // (el scrollspy del GooeyNav escucha 'ink:navigated' y hace un apply síncrono;
-    // si se emite antes de scrollear, ve el scroll viejo y resalta "Inicio").
+    // Con el scroll ya en la sección: recalcular el ítem activo del nav y forzar
+    // el resync de color del túnel (ambos escuchan 'ink:navigated').
     emitNavigated();
     requestAnimationFrame(() => {
       ScrollTrigger.update();
+      emitNavigated();
       revealMain();
     });
     setTimeout(() => {
       ScrollTrigger.update();
+      emitNavigated();
       revealMain();
     }, 200);
     return;
@@ -399,7 +453,7 @@ async function navigate(url, { push = true } = {}) {
   // VISTA NUEVA: montar React. La actual nace arriba (sin ancla) o se asienta en
   // el ancla con el <main> oculto hasta que los pins existen (landOnAnchorSettled).
   pageRoots = [];
-  current = { key, node: targetNode, roots: pageRoots, doc: targetDoc };
+  current = { key, node: targetNode, roots: pageRoots, doc: targetDoc, triggers: [] };
   if (!targetUrl.hash) window.scrollTo(0, 0);
   const mounted = mountPage();
 
@@ -499,18 +553,21 @@ function revealPage() {
 
 // Arranque
 mountSiteChrome();
-const bootMounted = mountPage();
-bootMounted.then(revealPage);
-// Vista inicial (la que renderizó WordPress): queda como `current` viva. Su
-// snapshot de <head> permite restaurarla al volver por keep-alive. `pageRoots`
-// es el mismo array que mountPage está llenando, así que la referencia se
-// mantiene en sync.
+// Triggers de la chrome (header): existen tras montar la chrome y ANTES de la
+// primera vista, así que este snapshot los aísla para excluirlos del keep-alive.
+chromeTriggers = new Set(ScrollTrigger.getAll());
+// Vista inicial (la que renderizó WordPress) queda como `current` viva. Su
+// snapshot de <head> permite restaurarla al volver por keep-alive. `pageRoots` es
+// el mismo array que mountPage llena, así que la referencia se mantiene en sync.
 current = {
   key: viewKey(window.location.href),
   node: document.getElementById(MAIN_ID),
   roots: pageRoots,
   doc: captureDocSnapshot(),
+  triggers: [],
 };
+const bootMounted = mountPage();
+bootMounted.then(revealPage);
 initRouter();
 
 // Respaldo: si algo se demora demasiado, revela igual (nunca dejar la página
