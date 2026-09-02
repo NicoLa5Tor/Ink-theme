@@ -72,7 +72,10 @@
   }
 
   .ink-services {
-    background: #000;
+    /* Charcoal como el resto de secciones oscuras. Antes era #000 puro y el
+       encabezado "Lo que hacemos" se veía más negro que las secciones vecinas.
+       El túnel 3D sí arranca en #000 a propósito (su animación negro->teal->blanco). */
+    background: var(--color-charcoal);
     scroll-margin-top: 6rem;
   }
 
