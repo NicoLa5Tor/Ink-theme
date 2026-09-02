@@ -49,8 +49,10 @@ $ink_logo_black_url = get_template_directory_uri() . '/assets/images/logo-black.
 <body <?php body_class(); ?>>
 <?php wp_body_open(); ?>
 
-<?php // Preloader: solo cubre el flash de hidratación (SSR -> React+GSAP) con el fondo de marca. Sin logo: el único logo de la entrada es el grande del intro del header. app.jsx lo retira al montar el hero; el script inline es el respaldo. ?>
-<div id="ink-preloader" aria-hidden="true"></div>
+<?php // Preloader: cubre el flash de hidratación (SSR -> React+GSAP) con el fondo de marca + un spinner. app.jsx lo retira cuando las secciones ya montaron; el script inline es el respaldo. ?>
+<div id="ink-preloader" role="status" aria-live="polite" aria-label="Cargando">
+	<span class="ink-preloader__spinner" aria-hidden="true"></span>
+</div>
 <script>
 	window.setTimeout(function () {
 		var p = document.getElementById('ink-preloader');
