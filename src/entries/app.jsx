@@ -93,11 +93,11 @@ function mountPage() {
 
   // Las secciones montan de forma asíncrona (import dinámico): al terminar
   // todas, se recalculan las posiciones de ScrollTrigger con el DOM ya hidratado.
-  if (pending.length) {
-    Promise.all(pending).then(() => {
-      requestAnimationFrame(() => ScrollTrigger.refresh());
-    });
-  }
+  const done = pending.length ? Promise.all(pending) : Promise.resolve();
+  done.then(() => {
+    requestAnimationFrame(() => ScrollTrigger.refresh());
+  });
+  return done;
 }
 
 function unmountPage() {
@@ -232,10 +232,36 @@ function initRouter() {
   });
 }
 
+/**
+ * Oculta el preloader que cubre el flash de hidratación. Se llama cuando las
+ * secciones ya montaron (mountPage resuelto): dos requestAnimationFrame aseguran
+ * que el estado inicial del hero (los gsap.set) ya se pintó, así al hacer fade
+ * el usuario ve el arranque de la animación, nunca el HTML sin animar detrás.
+ */
+let heroRevealed = false;
+function revealPage() {
+  if (heroRevealed) return;
+  heroRevealed = true;
+  const pre = document.getElementById('ink-preloader');
+  if (!pre) return;
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      pre.classList.add('is-hidden');
+      const remove = () => pre.remove();
+      pre.addEventListener('transitionend', remove, { once: true });
+      setTimeout(remove, 700); // respaldo si transitionend no dispara
+    }),
+  );
+}
+
 // Arranque
 mountSiteChrome();
-mountPage();
+mountPage().then(revealPage);
 initRouter();
+
+// Respaldo: si algo se demora demasiado, revela igual (nunca dejar la página
+// atrapada bajo el preloader).
+setTimeout(revealPage, 3000);
 
 if (window.location.hash) {
   waitForPageReady().then(() => {

@@ -155,6 +155,38 @@ function ink_preload_hero_lcp() {
 	);
 }
 
+/**
+ * Precarga (modulepreload) el chunk del Hero y sus dependencias SOLO en la
+ * portada. El Hero se carga con import() dinámico (code-splitting), así que sin
+ * esto tardaría una petición extra en montar y el preloader quedaría más tiempo.
+ * Con el preload, el chunk baja en paralelo con los vendors.
+ */
+add_action( 'wp_head', 'ink_preload_home_hero_chunk', 2 );
+
+function ink_preload_home_hero_chunk() {
+	if ( ! is_front_page() ) {
+		return;
+	}
+	$manifest = ink_get_vite_manifest();
+	$hero     = $manifest['src/components/sections/Hero/index.js'] ?? null;
+	if ( empty( $hero['file'] ) ) {
+		return;
+	}
+	$theme_uri = get_template_directory_uri();
+	$files     = array( $hero['file'] );
+	foreach ( $hero['imports'] ?? array() as $import_key ) {
+		if ( ! empty( $manifest[ $import_key ]['file'] ) ) {
+			$files[] = $manifest[ $import_key ]['file'];
+		}
+	}
+	foreach ( array_unique( $files ) as $file ) {
+		printf(
+			'<link rel="modulepreload" href="%s">' . "\n",
+			esc_url( "{$theme_uri}/dist/{$file}" )
+		);
+	}
+}
+
 add_action( 'wp_head', 'ink_preload_fonts', 1 );
 
 function ink_preload_fonts() {
