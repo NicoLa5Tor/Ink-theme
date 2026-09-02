@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import GooeyNav from '../../ui/GooeyNav';
-import MaskedHeading from '../../ui/MaskedHeading/MaskedHeading';
 import { HERO_PIN_VH } from '../../../animations/introTiming';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -97,12 +96,10 @@ export default function Header({ siteName, homeUrl, logoWhiteUrl, maskImageUrl =
     const hideIntro = () => {
       const fly = wrap.querySelector('[data-logo-fly]');
       const veil = wrap.querySelector('[data-logo-veil]');
-      const digital = wrap.querySelector('[data-intro-digital]');
       const headerLogo = bar.querySelector('[data-header-logo]');
       const menuBtn = bar.querySelector('[data-header-menu]');
       if (fly) gsap.set(fly, { autoAlpha: 0 });
       if (veil) gsap.set(veil, { autoAlpha: 0 });
-      if (digital) gsap.set(digital, { autoAlpha: 0, width: 0 });
       if (headerLogo) gsap.set(headerLogo, { autoAlpha: 1 });
       if (menuBtn) gsap.set(menuBtn, { autoAlpha: 1 });
     };
@@ -185,13 +182,12 @@ export default function Header({ siteName, homeUrl, logoWhiteUrl, maskImageUrl =
 
       const fly = wrap.querySelector('[data-logo-fly]');
       const veil = wrap.querySelector('[data-logo-veil]');
-      const digital = wrap.querySelector('[data-intro-digital]');
       const ink = wrap.querySelector('[data-intro-ink]');
       const headerLogo = bar.querySelector('[data-header-logo]');
       const menuBtn = bar.querySelector('[data-header-menu]');
       const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      if (!fly || !veil || !digital || !ink || !headerLogo || prefersReduced || introStarted) {
+      if (!fly || !veil || !ink || !headerLogo || prefersReduced || introStarted) {
         hideIntro();
         introStarted = true;
         logoCtx = null;
@@ -224,7 +220,6 @@ export default function Header({ siteName, homeUrl, logoWhiteUrl, maskImageUrl =
         };
 
         gsap.set(headerLogo, { autoAlpha: 0 });
-        gsap.set(digital, { autoAlpha: 1, width: 'auto' });
         gsap.set(veil, { autoAlpha: 1 });
         gsap.set(fly, { autoAlpha: 0, transformOrigin: '0% 0%' });
         if (menuBtn) gsap.set(menuBtn, { autoAlpha: 0 });
@@ -249,7 +244,6 @@ export default function Header({ siteName, homeUrl, logoWhiteUrl, maskImageUrl =
           0.35,
         );
         logoTl.to(veil, { autoAlpha: 0, duration: 0.45, ease: 'power2.out' }, 0.85);
-        logoTl.to(digital, { autoAlpha: 0, width: 0, duration: 0.28, ease: 'power2.out' }, 1.05);
         logoTl.to(headerLogo, { autoAlpha: 1, duration: 0.12 }, 1.35);
         logoTl.to(fly, { autoAlpha: 0, duration: 0.12 }, 1.38);
         if (menuBtn) {
@@ -455,9 +449,6 @@ export default function Header({ siteName, homeUrl, logoWhiteUrl, maskImageUrl =
         <div data-logo-veil className="ink-logo-intro__veil" />
         <div data-logo-fly className="ink-logo-intro__mark">
           <img data-intro-ink src={logoWhiteUrl} alt="" className="ink-logo-intro__ink" />
-          <span data-intro-digital className="ink-logo-intro__digital">
-            <MaskedHeading text="Digital" src={maskImageUrl} inline className="ink-logo-intro__heading" />
-          </span>
         </div>
       </div>
     </div>

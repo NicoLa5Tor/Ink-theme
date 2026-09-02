@@ -77,32 +77,20 @@ export default function MaskedHeading({
     const root = rootRef.current;
     if (!root) return undefined;
 
+    // Layout una sola vez (y en resize / cuando cargan las fuentes). Antes había
+    // un requestAnimationFrame infinito que hacía "drift" la imagen en cada frame
+    // (con getComputedStyle + clip-path + filter): saturaba el hilo principal y
+    // trababa la animación de entrada. El flotado era un detalle mínimo; se quita
+    // a cambio de una entrada fluida. place() dentro de sync() fija el encuadre.
     sync();
     const ro = new ResizeObserver(sync);
     ro.observe(root);
     document.fonts?.ready?.then(sync).catch(() => {});
 
-    let raf = 0;
-    let last = performance.now();
-    let clock = 0;
-
-    const frame = (now) => {
-      const dt = Math.min(0.05, (now - last) / 1000);
-      last = now;
-      clock += dt;
-      const off = offsetRef.current;
-      off.x = Math.sin(clock * 0.21) * drift;
-      off.y = Math.cos(clock * 0.17) * drift * 0.6;
-      place();
-      raf = requestAnimationFrame(frame);
-    };
-
-    raf = requestAnimationFrame(frame);
     return () => {
-      cancelAnimationFrame(raf);
       ro.disconnect();
     };
-  }, [place, sync, drift]);
+  }, [sync]);
 
   return (
     <div
