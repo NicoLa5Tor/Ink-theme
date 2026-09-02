@@ -453,6 +453,10 @@
     overflow: visible;
     line-height: 1.2;
     padding-bottom: 0.22em;
+    /* Responsive: reparte las líneas de forma equilibrada y evita que una palabra
+       larga desborde en pantallas angostas. */
+    text-wrap: balance;
+    overflow-wrap: break-word;
   }
 
   .ink-hero {
