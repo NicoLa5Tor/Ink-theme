@@ -282,6 +282,13 @@ function pushPageview(pathname) {
   window.dataLayer.push({ event: 'ink_pageview', page_path: pathname });
 }
 
+// Avisa a la chrome (GooeyNav) que la navegación cambió, para que recalcule el
+// ítem activo. Se emite DESPUÉS de posicionar el scroll (el scrollspy lee la
+// posición actual); emitirlo antes resaltaría el ítem equivocado.
+function emitNavigated() {
+  window.dispatchEvent(new CustomEvent('ink:navigated'));
+}
+
 async function navigate(url, { push = true } = {}) {
   const targetUrl = new URL(url, window.location.href);
   const fetchUrl = `${targetUrl.origin}${targetUrl.pathname}${targetUrl.search}`;
@@ -344,8 +351,12 @@ async function navigate(url, { push = true } = {}) {
   updateHead(targetDoc);
   document.body.className = targetDoc.body.className;
   if (push) window.history.pushState({ ink: true }, '', url);
-  window.dispatchEvent(new CustomEvent('ink:navigated'));
   pushPageview(targetUrl.pathname);
+  // Solo para páginas propias (Blog/Planes): el scrollspy resuelve el activo por
+  // URL sin depender del scroll. Para anclas NO se emite aquí: el apply forzado
+  // vería el scroll viejo (arriba) y resaltaría "Inicio", pisando el estado que
+  // el clic ya dejó. Para anclas se emite tras posicionar (abajo).
+  if (!targetUrl.hash) emitNavigated();
 
   let revealed = false;
   const revealMain = () => {
@@ -370,6 +381,10 @@ async function navigate(url, { push = true } = {}) {
     // según el scroll REAL donde acabamos de caer, así al llegar a #servicios el
     // túnel se ve en su INICIO (no como si ya se hubiera scrolleado todo).
     ScrollTrigger.update();
+    // Ahora que el scroll ya está en el ancla, recalcular el ítem activo del nav
+    // (el scrollspy del GooeyNav escucha 'ink:navigated' y hace un apply síncrono;
+    // si se emite antes de scrollear, ve el scroll viejo y resalta "Inicio").
+    emitNavigated();
     requestAnimationFrame(() => {
       ScrollTrigger.update();
       revealMain();
@@ -394,7 +409,10 @@ async function navigate(url, { push = true } = {}) {
       .catch(() => {})
       .then(() => fontsReady)
       .then(() => landOnAnchorSettled(targetUrl.hash))
-      .then(revealMain, revealMain);
+      .then(() => {
+        emitNavigated(); // scroll ya en el ancla → el nav resalta la sección correcta
+        revealMain();
+      }, revealMain);
     setTimeout(revealMain, 2200); // respaldo duro: nunca dejar el <main> oculto
   } else {
     mounted.then(
