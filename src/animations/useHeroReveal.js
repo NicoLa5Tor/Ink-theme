@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useLayoutEffect } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { HERO_PIN_VH } from './introTiming';
@@ -12,7 +12,11 @@ gsap.registerPlugin(ScrollTrigger);
  * @param {import('react').RefObject<HTMLElement>} sectionRef
  */
 export function useHeroReveal(sectionRef) {
-  useEffect(() => {
+  // useLayoutEffect (no useEffect): el gsap.set inicial que "cierra" la cortina
+  // debe aplicarse ANTES de que el navegador pinte. Con useEffect corría después
+  // del paint, así que al re-montar el hero (navegación SPA de vuelta a Inicio)
+  // se veía un frame del HTML sin animar antes de que GSAP tomara el control.
+  useLayoutEffect(() => {
     const section = sectionRef.current;
     if (!section) return undefined;
 

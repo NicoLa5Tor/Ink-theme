@@ -103,7 +103,22 @@ function mountPage() {
 function unmountPage() {
   // Cada root de React se desmonta (sus cleanups matan los ScrollTriggers de
   // las animaciones), evitando fugas y triggers huérfanos.
-  pageRoots.forEach((root) => root.unmount());
+  // try/catch: ScrollTrigger envuelve elementos fijados en "pin-spacer" (mueve
+  // nodos del DOM), así que React puede lanzar removeChild ("node is not a
+  // child") al desmontar. Es benigno aquí: el <main> completo se reemplaza
+  // enseguida, descartando cualquier nodo residual.
+  // try/catch: al desmontar, React puede lanzar removeChild ("node is not a
+  // child") porque GSAP/MaskedHeading manipulan el DOM imperativamente (pin-
+  // spacers, SVG). Es un problema pre-existente y benigno aquí: el <main>
+  // completo se reemplaza enseguida, descartando cualquier nodo residual. El
+  // try/catch evita que rompa el flujo de navegación.
+  pageRoots.forEach((root) => {
+    try {
+      root.unmount();
+    } catch {
+      /* nodo ya movido por GSAP/SVG; se descarta con el reemplazo del <main> */
+    }
+  });
   pageRoots = [];
 }
 
@@ -182,22 +197,38 @@ async function navigate(url, { push = true } = {}) {
     return;
   }
 
-  const apply = () => {
-    unmountPage();
-    document.getElementById(MAIN_ID).replaceWith(document.importNode(newMain, true));
-    updateHead(newDoc);
-    document.body.className = newDoc.body.className;
-    if (push) window.history.pushState({ ink: true }, '', url);
-    mountPage();
-    window.dispatchEvent(new CustomEvent('ink:navigated'));
-    pushPageview(targetUrl.pathname);
-  };
+  // Se intercambia el <main> OCULTO y se revela solo cuando las secciones ya
+  // montaron y aplicaron su estado inicial (los gsap.set corren en
+  // useLayoutEffect, antes de pintar). Así, al volver a una página (p. ej. Inicio
+  // en la SPA), nunca se ve el HTML SSR sin animar ("como si ya hubiera hecho
+  // scroll") antes de que GSAP tome el control. No se usa View Transition aquí:
+  // su snapshot del DOM chocaba con el re-montaje de React (removeChild).
+  const incoming = document.importNode(newMain, true);
+  incoming.style.visibility = 'hidden';
 
-  if (document.startViewTransition) {
-    await document.startViewTransition(apply).finished;
-  } else {
-    apply();
-  }
+  unmountPage();
+  document.getElementById(MAIN_ID).replaceWith(incoming);
+  updateHead(newDoc);
+  document.body.className = newDoc.body.className;
+  if (push) window.history.pushState({ ink: true }, '', url);
+  window.dispatchEvent(new CustomEvent('ink:navigated'));
+  pushPageview(targetUrl.pathname);
+
+  let revealed = false;
+  const revealMain = () => {
+    if (revealed) return;
+    revealed = true;
+    incoming.style.visibility = '';
+  };
+  // Revelar cuando las secciones montaron (dos rAF: el gsap.set del hero corre
+  // en useLayoutEffect, antes de pintar). El reveal se dispara pase lo que pase
+  // —éxito o error de montaje— y hay un respaldo por timeout FUERA del then para
+  // que el <main> nunca quede oculto (incluye pestaña en segundo plano).
+  mountPage().then(
+    () => requestAnimationFrame(() => requestAnimationFrame(revealMain)),
+    revealMain,
+  );
+  setTimeout(revealMain, 250);
 
   await scrollAfterNavigation(url, { push: false, instant: !targetUrl.hash });
 }
