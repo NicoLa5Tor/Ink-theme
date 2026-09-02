@@ -103,6 +103,13 @@ export function useHeroReveal(sectionRef) {
           pinSpacing: true,
           anticipatePin: 1,
           invalidateOnRefresh: true,
+          // Prioridad de refresco descendente por orden en el DOM (Hero=3,
+          // Services=2, Portfolio=1). Sin esto, al recalcularse los pins de
+          // forma asíncrona (montaje por import dinámico + carga de imágenes),
+          // el 'top top' de una sección de abajo se mide sin contar el
+          // pin-spacer de la de arriba → posiciones corridas → el scroll salta
+          // a mitad de sección. Es el fix recomendado por GSAP para varios pins.
+          refreshPriority: 3,
         },
       });
 

@@ -40,6 +40,12 @@ export function useHorizontalGallery(sectionRef, trackRef) {
           start: 'top top',
           end: () => `+=${getDistance()}`,
           invalidateOnRefresh: true,
+          // Ver nota en useHeroReveal: prioridad descendente por orden en el DOM
+          // (Hero=3, Services=2, Portfolio=1). Esta sección es la más sensible
+          // porque su distancia depende del ancho del track, que crece al cargar
+          // las imágenes; el refresco ordenado evita que ese recálculo mueva los
+          // pins de arriba y provoque saltos.
+          refreshPriority: 1,
         },
       });
     }, section);

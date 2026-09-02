@@ -9,6 +9,13 @@ import {
   waitForPageReady,
 } from '../navigation/inkRouter';
 
+// En móvil, mostrar/ocultar la barra de direcciones cambia innerHeight y dispara
+// un refresco de ScrollTrigger a mitad de scroll; como los pins usan
+// end: '+=innerHeight*VH' con invalidateOnRefresh, ese recálculo mueve el final
+// del pin bajo el dedo y la sección "salta". ignoreMobileResize hace que solo se
+// refresque en cambios de ancho (rotación), no por la barra de direcciones.
+ScrollTrigger.config({ ignoreMobileResize: true });
+
 /**
  * Mapa root DOM -> módulo de sección. Cada `load` es un import() dinámico con
  * ruta literal, así que Rollup lo separa en su propio chunk y el navegador solo

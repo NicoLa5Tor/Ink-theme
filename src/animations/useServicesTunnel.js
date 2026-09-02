@@ -126,6 +126,10 @@ export function useServicesTunnel(sectionRef) {
         scrub: 0.55,
         anticipatePin: 1,
         invalidateOnRefresh: true,
+        // Ver nota en useHeroReveal: prioridad descendente por orden en el DOM
+        // (Hero=3, Services=2, Portfolio=1) para que los pins se recalculen de
+        // arriba hacia abajo y el 'top top' cuente el pin-spacer de arriba.
+        refreshPriority: 2,
         onUpdate: (self) => {
           progress = self.progress;
           paintBack(self.progress);
