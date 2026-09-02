@@ -221,6 +221,17 @@ async function navigate(url, { push = true } = {}) {
   window.dispatchEvent(new CustomEvent('ink:navigated'));
   pushPageview(targetUrl.pathname);
 
+  // Reset del scroll a tope ANTES de revelar la vista nueva y de montar los
+  // pins. Como el <main> se revela oculto->visible, y el scroll a 0 se hacía
+  // después (async, en scrollAfterNavigation), la página nueva alcanzaba a
+  // verse en la posición vieja (p. ej. abajo, si venías scrolleado en Inicio) y
+  // luego "saltaba" arriba. Al hacerlo aquí, síncrono, la vista nueva ya nace
+  // arriba y ScrollTrigger calcula los pins desde y=0. Si hay ancla (#hash), no
+  // se toca: scrollAfterNavigation la posiciona tras montar.
+  if (!targetUrl.hash) {
+    window.scrollTo(0, 0);
+  }
+
   let revealed = false;
   const revealMain = () => {
     if (revealed) return;
@@ -248,6 +259,13 @@ function handleSamePageLink(url, { push = true } = {}) {
 }
 
 function initRouter() {
+  // El router gestiona el scroll en cada navegación (reset a tope / anclas). Sin
+  // esto, el navegador restaura la posición previa en atrás/adelante y pelea con
+  // nuestro scrollTo -> otro salto.
+  if ('scrollRestoration' in window.history) {
+    window.history.scrollRestoration = 'manual';
+  }
+
   document.addEventListener('click', (e) => {
     if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const anchor = e.target.closest('a[href]');
