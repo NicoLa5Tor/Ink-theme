@@ -101,7 +101,10 @@ function mountPage() {
   // todas, se recalculan las posiciones de ScrollTrigger con el DOM ya hidratado.
   const done = pending.length ? Promise.all(pending) : Promise.resolve();
   done.then(() => {
-    requestAnimationFrame(() => ScrollTrigger.refresh());
+    // Doble rAF: root.render() es asíncrono; los pins se crean en el
+    // useLayoutEffect que corre cuando React pinta. Con un solo rAF el refresh
+    // podía adelantarse a ese commit y medir la página sin pin-spacers.
+    requestAnimationFrame(() => requestAnimationFrame(() => ScrollTrigger.refresh()));
   });
   return done;
 }
@@ -246,17 +249,20 @@ async function navigate(url, { push = true } = {}) {
   );
   setTimeout(revealMain, 250);
 
-  // Scroll al ancla (#contacto, etc.) SOLO después de que las secciones montaron
-  // (import() asíncrono) y ScrollTrigger recalculó. Si se hacía antes, los pins
-  // (Hero/Servicios/Portfolio) aún no existían, la página era corta y el
-  // offsetTop del ancla quedaba pequeño -> el scroll terminaba "a mitad de
-  // servicios". Sin ancla, ya reseteamos a y=0 arriba, no hay nada que hacer.
+  // Scroll al ancla (#servicios, #contacto, etc.) SOLO cuando la página está
+  // realmente lista. Dos esperas encadenadas, ambas necesarias:
+  //   1. mounted: resuelve cuando terminan los import() de las secciones.
+  //   2. waitForPageReady: espera a que React PINTE (render de createRoot es
+  //      asíncrono; los pins se crean en useLayoutEffect al pintar) y recalcula
+  //      ScrollTrigger con margen.
+  // Si se hacía antes (una sola de las dos, o un solo rAF), los pins
+  // Hero/Servicios/Portfolio aún no existían, la página era corta y el offsetTop
+  // del ancla salía pequeño -> el scroll terminaba "a mitad de servicios". Afecta
+  // a TODAS las navegaciones a ancla, no solo contacto. Sin ancla ya reseteamos a
+  // y=0 arriba, no hay nada que hacer.
   if (targetUrl.hash) {
     const runHashScroll = () =>
-      requestAnimationFrame(() => {
-        ScrollTrigger.refresh();
-        scrollToHash(targetUrl.hash, { instant: false });
-      });
+      waitForPageReady().then(() => scrollToHash(targetUrl.hash, { instant: false }));
     mounted.then(runHashScroll, runHashScroll);
   }
 }
